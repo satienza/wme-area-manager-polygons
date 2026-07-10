@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm view *)",
+      "Bash(npm install *)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(npm run *)",
+      "Bash(node src/self-check.js)",
+      "Bash(npm test *)",
+      "Bash(git add *)"
+    ]
+  }
+}

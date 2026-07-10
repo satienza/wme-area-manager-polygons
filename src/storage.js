@@ -1,6 +1,6 @@
-// Persistencia de rectángulos guardados vía GM_setValue/GM_getValue.
-// Estructura por entrada: { id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion }
-// Ver requisitos_wme_area_manager.md, sección 3.
+// Persistence of saved rectangles via GM_setValue/GM_getValue.
+// Entry structure: { id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion }
+// See requisitos_wme_area_manager.md, section 3.
 
 const STORAGE_KEY = 'wme-area-manager:rectangles';
 

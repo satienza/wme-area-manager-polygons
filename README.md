@@ -1,39 +1,39 @@
 # wme-area-manager
 
-Userscript de Tampermonkey para el Waze Map Editor (WME). Traza un rectángulo centrado en un punto del mapa, con área y zoom fijados según el nivel del editor, permite guardarlo con nombre y gestionar los guardados desde el panel lateral, y genera un enlace directo al punto central.
+Tampermonkey userscript for the Waze Map Editor (WME). Draws a rectangle centered on a point on the map, with area and zoom fixed according to the editor's level, lets you save it with a name and manage saved rectangles from the sidebar, and generates a direct link to the center point.
 
-- Requisitos y análisis de viabilidad: [`requisitos_wme_area_manager.md`](./requisitos_wme_area_manager.md)
-- Plan de desarrollo por fases: [`PLAN.md`](./PLAN.md)
+- Requirements and feasibility analysis: [`requisitos_wme_area_manager.md`](./requisitos_wme_area_manager.md)
+- Phased development plan: [`PLAN.md`](./PLAN.md)
 
-## Estado
+## Status
 
-En andamiaje. Estructura y stubs de módulos creados (Fase 0 del plan); pendiente implementar la Fase 1 en adelante.
+Scaffolding stage. Structure and module stubs created (Phase 0 of the plan); Phase 1 onward still to be implemented.
 
-## Estructura
+## Structure
 
 ```
 src/
-  header.js     Cabecera de metadatos del userscript (@name, @match, @grant...)
-  index.js      Punto de entrada, inicialización del SDK
-  config.js     Regla nivel de editor -> zoom/área
-  geometry.js   Cálculo geodésico del cuadrado (Turf.js)
-  storage.js    Persistencia de guardados (GM_setValue/GM_getValue)
-  map-layer.js  Capa propia del SDK: dibujo y arrastre manual
-  link.js       Generación del enlace al punto central
-  sidebar.js    Panel lateral (UI)
-build.js        Bundle con esbuild -> dist/wme-area-manager.user.js
+  header.js     Userscript metadata header (@name, @match, @grant...)
+  index.js      Entry point, SDK initialization
+  config.js     Editor level -> zoom/area rule
+  geometry.js   Geodesic calculation of the square (Turf.js)
+  storage.js    Persistence of saved rectangles (GM_setValue/GM_getValue)
+  map-layer.js  Custom SDK layer: drawing and manual dragging
+  link.js       Generation of the link to the center point
+  sidebar.js    Sidebar panel (UI)
+build.js        esbuild bundle -> dist/wme-area-manager.user.js
 ```
 
-## Desarrollo
+## Development
 
 ```bash
 npm install
-npm run build     # genera dist/wme-area-manager.user.js
-npm run watch      # reconstruye en cada cambio
+npm run build     # generates dist/wme-area-manager.user.js
+npm run watch      # rebuilds on every change
 ```
 
-Para probarlo, instalar `dist/wme-area-manager.user.js` en Tampermonkey y abrir el WME.
+To try it out, install `dist/wme-area-manager.user.js` in Tampermonkey and open the WME.
 
-## Dependencias pendientes
+## Pending dependencies
 
-- `@turf/turf` para el cálculo geodésico del cuadrado (ver `src/geometry.js`).
+- `@turf/turf` for the geodesic calculation of the square (see `src/geometry.js`).

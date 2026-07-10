@@ -1,30 +1,51 @@
-// Capa propia del SDK para dibujar y arrastrar el rectángulo, sin tocar el
-// DataModel de WME (se descartó usar un Venue real, ver requisitos sección 3.1).
+// Custom SDK layer to draw and drag the rectangle without touching WME's
+// DataModel (using a real Venue was discarded, see requirements section 3.1).
 
 const LAYER_NAME = 'wme-area-manager-rectangle';
 
 export class RectangleLayer {
   constructor(sdk) {
     this.sdk = sdk;
-    this.sdk.Map.addLayer({ layerName: LAYER_NAME });
-    this.featureId = null;
-    // TODO (Fase 4): registrar wme-map-mouse-down/move/up para el arrastre manual,
-    // recalculando el centro y redibujando en cada movimiento.
+    this.sdk.Map.addLayer({
+      layerName: LAYER_NAME,
+      styleRules: [
+        { style: { fill: false, strokeColor: '#FF00FF', strokeWidth: 3 } },
+        {
+          predicate: (props) => props.role === 'diagonal',
+          style: { strokeColor: '#FF00FF', strokeWidth: 1, strokeDashstyle: 'dash' },
+        },
+      ],
+    });
+    this.featureIds = [];
+    // TODO (Phase 4): register wme-map-mouse-down/move/up for manual dragging,
+    // recalculating the center and redrawing on every move.
   }
 
-  draw(polygon) {
+  /**
+   * @param {GeoJSON.Polygon} polygon
+   * @param {GeoJSON.LineString[]} diagonals
+   */
+  draw(polygon, diagonals) {
     this.clear();
-    this.featureId = 'rectangle';
-    this.sdk.Map.addFeatureToLayer({
-      layerName: LAYER_NAME,
-      feature: { id: this.featureId, type: 'Feature', geometry: polygon, properties: {} },
-    });
+    const features = [
+      { id: 'outline', type: 'Feature', geometry: polygon, properties: { role: 'outline' } },
+      ...diagonals.map((line, i) => ({
+        id: `diagonal-${i}`,
+        type: 'Feature',
+        geometry: line,
+        properties: { role: 'diagonal' },
+      })),
+    ];
+    for (const feature of features) {
+      this.sdk.Map.addFeatureToLayer({ layerName: LAYER_NAME, feature });
+      this.featureIds.push(feature.id);
+    }
   }
 
   clear() {
-    if (this.featureId) {
-      this.sdk.Map.removeFeatureFromLayer({ layerName: LAYER_NAME, featureId: this.featureId });
-      this.featureId = null;
+    for (const featureId of this.featureIds) {
+      this.sdk.Map.removeFeatureFromLayer({ layerName: LAYER_NAME, featureId });
     }
+    this.featureIds = [];
   }
 }

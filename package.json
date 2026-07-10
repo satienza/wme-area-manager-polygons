@@ -6,9 +6,14 @@
   "type": "module",
   "scripts": {
     "build": "node build.js",
-    "watch": "node build.js --watch"
+    "watch": "node build.js --watch",
+    "test": "node src/self-check.js"
   },
   "devDependencies": {
     "esbuild": "^0.24.0"
+  },
+  "dependencies": {
+    "@turf/destination": "^7.3.5",
+    "@turf/helpers": "^7.3.5"
   }
 }

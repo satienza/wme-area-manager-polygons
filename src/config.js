@@ -1,5 +1,5 @@
-// Regla nivel de editor -> zoom / área.
-// Ver requisitos_wme_area_manager.md, sección 2 (punto 4).
+// Editor level -> zoom / area rule.
+// See requisitos_wme_area_manager.md, section 2 (point 4).
 export const LEVEL_RULES = [
   { levels: [1, 2], zoom: 15, areaKm2: 7.59 },
   { levels: [3], zoom: 14, areaKm2: 30.37 },
@@ -7,12 +7,12 @@ export const LEVEL_RULES = [
 ];
 
 /**
- * @param {number} rank - rank expuesto por State.userInfo (SDK).
+ * @param {number} rank - rank exposed by State.getUserInfo() (SDK).
  * @returns {{ level: number, zoom: number, areaKm2: number }}
  */
 export function getConfigForRank(rank) {
-  // TODO (Fase 5): confirmar el mapeo real rank (SDK) -> nivel (1-5) con cuentas
-  // de distinto nivel. Se asume aquí, provisionalmente, rank 0-indexado.
+  // TODO (Phase 5): confirm the actual rank (SDK) -> level (1-5) mapping with
+  // accounts of different levels. Provisionally assumes a 0-indexed rank here.
   const level = rank + 1;
   const rule = LEVEL_RULES.find((r) => r.levels.includes(level));
   if (!rule) {
