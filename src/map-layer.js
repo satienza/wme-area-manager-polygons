@@ -1,5 +1,6 @@
-// Custom SDK layer to draw and drag the rectangle without touching WME's
-// DataModel (using a real Venue was discarded, see requirements section 3.1).
+// Custom SDK layer to draw the rectangle without touching WME's DataModel
+// (using a real Venue was discarded, see requirements section 3.1). Dragging
+// only applies once a shape is in edit mode; see PolygonLayer (polygon-layer.js).
 
 const LAYER_NAME = 'wme-area-manager-rectangle';
 
@@ -17,8 +18,6 @@ export class RectangleLayer {
       ],
     });
     this.featureIds = [];
-    // TODO (Phase 4): register wme-map-mouse-down/move/up for manual dragging,
-    // recalculating the center and redrawing on every move.
   }
 
   /**

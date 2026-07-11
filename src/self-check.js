@@ -7,6 +7,7 @@ import {
   buildRectangleFromCenter,
   buildDiagonals,
   geometryBbox,
+  pointInRing,
   polygonAreaKm2,
   polygonCenter,
   toGeoJSONFeature,
@@ -99,5 +100,10 @@ const [ring] = squareKm7_59.coordinates;
 const lons = ring.map((c) => c[0]);
 const lats = ring.map((c) => c[1]);
 assert.deepEqual(bbox, [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)]);
+
+// Phase 5: point-in-ring test that gates drag start in PolygonLayer.
+const squareRing = squareKm7_59.coordinates[0];
+assert.ok(pointInRing([-3.7, 40.4], squareRing)); // center: inside
+assert.ok(!pointInRing([0, 0], squareRing)); // far away: outside
 
 console.log('self-check OK');

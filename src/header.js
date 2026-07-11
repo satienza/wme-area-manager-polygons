@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://forgejo.petricor.net/satienza/wme-area-manager
-// @version      0.4.0
+// @version      0.5.0
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
-// @author       Santi
+// @author       freakyman
 // @match        https://www.waze.com/*/editor*
 // @match        https://www.waze.com/editor*
 // @grant        GM_setValue

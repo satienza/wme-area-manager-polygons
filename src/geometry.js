@@ -76,6 +76,24 @@ export function buildDiagonals(polygon) {
 }
 
 /**
+ * Ray-casting point-in-polygon test, used to tell whether a mouse-down
+ * landed inside a drawn ring (drag start) vs. outside it. No Turf needed.
+ * @param {GeoJSON.Position} pointCoord - [lon, lat].
+ * @param {GeoJSON.Position[]} ring - closed or open ring.
+ * @returns {boolean}
+ */
+export function pointInRing([x, y], ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
  * Bounding box of a polygon's outer ring, from raw min/max — no Turf needed.
  * Used to center/zoom the map on a saved shape (see saved-shape-layer.js).
  * @param {GeoJSON.Polygon} geometry

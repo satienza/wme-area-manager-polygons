@@ -53,11 +53,11 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 
 **Criterio de salida**: gestión completa (crear, listar, cargar, editar, exportar, renombrar, borrar) sin recargar la página.
 
-## Fase 5 — Arrastre manual
+## Fase 5 — Arrastre manual (hecho)
 
 - El arrastre vive dentro del modo edición (`PolygonLayer`, ver Fase 4 "Editar"), no en la vista de solo lectura (`SavedShapeLayer`): solo tiene sentido reposicionar una figura que ya se puede tocar vértice a vértice.
 - Desde la Fase 3, lo guardado/exportado es la geometría exacta trazada, así que el arrastre ya no recalcula un rectángulo nuevo "manteniendo el área fija" (`buildRectangleFromCenter`) — eso solo vale para el caso rectángulo perfecto y rompería un polígono libre editado a mano. En su lugar: **traslación rígida** de todos los vértices por el mismo delta (Δlon, Δlat) del ratón, válida por igual para rectángulo y polígono libre, preservando exactamente la forma exportable.
-- Eventos de ratón (`wme-map-mouse-down/move/up`) sobre `PolygonLayer`: al pulsar dentro del contorno (no sobre un marcador de vértice, reservado para borrar) se inicia el arrastre; en cada movimiento se traslada `coordinates` y se redibuja (`_redraw()`); al soltar se recalcula el centro aproximado (`polygonCenter`) y se actualiza `currentEntry`.
+- Eventos de ratón (`wme-map-mouse-down/move`) sobre `PolygonLayer`: **clic para coger, clic para soltar**, no pulsar-mantener-soltar. El SDK público no expone forma de desactivar el paneo nativo del mapa (que escucha el mismo gesto físico de ratón), así que mantener el botón pulsado mientras se mueve el ratón dispara a la vez el paneo del mapa. Un clic simple (pulsar y soltar sin movimiento) no lo activa — el mismo motivo por el que `drawPolygon()` no panea al añadir vértices con clics. Por eso: un primer clic dentro del contorno (no sobre un marcador de vértice, reservado para borrar) arma el arrastre; cada `wme-map-mouse-move` (botón ya no pulsado) traslada `coordinates` desde la base fijada al armar y redibuja (`_redraw()`); un segundo clic en cualquier punto lo suelta, recalcula el centro aproximado (`polygonCenter`) y actualiza `currentEntry`.
 - Si la figura arrastrada corresponde a un guardado existente (tiene `id`), "Guardar" sobrescribe esa entrada (ya soportado por `saveRectangle`, upsert por `id`).
 
 **Criterio de salida**: arrastre fluido de cualquier forma (rectángulo o polígono) en modo edición, sin tocar el `DataModel` de WME, preservando la geometría exacta para guardado/exportación.
