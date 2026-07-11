@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { getConfigForRank } from './config.js';
-import { buildRectangleFromCenter, buildDiagonals } from './geometry.js';
+import { buildRectangleFromCenter, buildDiagonals, polygonAreaKm2, polygonCenter } from './geometry.js';
 
 assert.equal(getConfigForRank(0).level, 1);
 assert.equal(getConfigForRank(2).zoom, 14);
@@ -44,5 +44,20 @@ for (const diagonal of [diag1, diag2]) {
   assert.ok(Math.abs(midpoint[0] - -3.7) < 0.001);
   assert.ok(Math.abs(midpoint[1] - 40.4) < 0.001);
 }
+
+// Phase 2: polygon area/validity and rough center.
+const { polygon: squareKm7_59 } = buildRectangleFromCenter({ lon: -3.7, lat: 40.4 }, 7.59, 1);
+assert.ok(Math.abs(polygonAreaKm2(squareKm7_59) - 7.59) < 7.59 * 0.01);
+
+const { level: level1, areaKm2: maxAreaKm2Level1 } = getConfigForRank(0);
+assert.equal(level1, 1);
+assert.ok(polygonAreaKm2(squareKm7_59) <= maxAreaKm2Level1); // within its own level's cap
+const { areaKm2: maxAreaKm2Level3 } = getConfigForRank(2); // level 3, max 30.37 km²... still fits
+assert.ok(polygonAreaKm2(squareKm7_59) <= maxAreaKm2Level3);
+assert.ok(!(121.5 <= maxAreaKm2Level1)); // a much larger area exceeds a level-1 cap
+
+const center = polygonCenter(squareKm7_59.coordinates[0].slice(0, -1));
+assert.ok(Math.abs(center.lon - -3.7) < 0.001);
+assert.ok(Math.abs(center.lat - 40.4) < 0.001);
 
 console.log('self-check OK');

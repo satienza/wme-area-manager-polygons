@@ -1,6 +1,6 @@
 {
   "name": "wme-area-manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Userscript de Tampermonkey para WME: traza rectángulos de área según el nivel del editor, con enlace al centro y guardado de rectángulos con nombre.",
   "private": true,
   "type": "module",
@@ -13,6 +13,7 @@
     "esbuild": "^0.24.0"
   },
   "dependencies": {
+    "@turf/area": "^7.3.5",
     "@turf/destination": "^7.3.5",
     "@turf/helpers": "^7.3.5"
   }

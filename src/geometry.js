@@ -4,6 +4,7 @@
 // deltas.
 
 import destination from '@turf/destination';
+import area from '@turf/area';
 import { point } from '@turf/helpers';
 
 /**
@@ -37,6 +38,28 @@ export function buildRectangleFromCenter(center, areaKm2, aspectRatio = 1) {
   };
 
   return { polygon, bbox: [westLon, southLat, eastLon, northLat] };
+}
+
+/**
+ * Geodesic area of a free-form polygon.
+ * @param {GeoJSON.Polygon} polygon
+ * @returns {number} area in km².
+ */
+export function polygonAreaKm2(polygon) {
+  return area(polygon) / 1_000_000;
+}
+
+/**
+ * Rough planar center of a ring, for placing the editor link marker.
+ * Good enough at the km² scale this script works with; not a geodesic
+ * centroid.
+ * @param {GeoJSON.Position[]} coordinates - ring without the closing point.
+ * @returns {{ lon: number, lat: number }}
+ */
+export function polygonCenter(coordinates) {
+  const lon = coordinates.reduce((sum, [x]) => sum + x, 0) / coordinates.length;
+  const lat = coordinates.reduce((sum, [, y]) => sum + y, 0) / coordinates.length;
+  return { lon, lat };
 }
 
 /**

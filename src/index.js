@@ -1,4 +1,5 @@
 import { RectangleLayer } from './map-layer.js';
+import { PolygonLayer } from './polygon-layer.js';
 import { initSidebar } from './sidebar.js';
 
 function initScript() {
@@ -9,7 +10,8 @@ function initScript() {
 
   sdk.Events.once({ eventName: 'wme-ready' }).then(() => {
     const layer = new RectangleLayer(sdk);
-    initSidebar({ sdk, layer });
+    const polygonLayer = new PolygonLayer(sdk);
+    initSidebar({ sdk, layer, polygonLayer });
   });
 }
 
