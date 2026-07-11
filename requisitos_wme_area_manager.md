@@ -25,7 +25,7 @@ Userscript (Tampermonkey) para el Waze Map Editor (WME) que traza un rectángulo
 6. **Guardado con nombre**: tras trazar el polígono (de ahora en adelante), un campo de texto ("Nombre") y un botón "Guardar" lo añaden a una lista persistente. El nombre es obligatorio para guardar; no se guarda automáticamente al dibujar. El nombre se autorrellena con "Polygon aaaammddhhmmss". 
 7. **Gestión desde el panel**: el panel lateral muestra la lista de rectángulos guardados (nombre, nivel, fecha de creación). Por cada entrada:
    - **Cargar/centrar**: vuelve a dibujar el rectángulo en el mapa y centra la vista sobre él (`centerMapOnGeometry`).
-   - **Exportar**: exportar el polígono (rectángulo o polígono libre) en formato WKT (`https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry`)
+   - **Exportar**: exportar el polígono (rectángulo o polígono libre) en formato WKT (`https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry`) o GeoJSON.
    - **Copiar enlace**: copia el enlace al punto central (ver punto 9).
    - **Renombrar**: edita el nombre sin recalcular geometría.
    - **Eliminar**: borra la entrada de la lista y, si está dibujado, lo quita del mapa.
@@ -45,8 +45,8 @@ Userscript (Tampermonkey) para el Waze Map Editor (WME) que traza un rectángulo
 - **Persistencia de los guardados**: `GM_setValue`/`GM_getValue` (almacenamiento propio de Tampermonkey, por script). Requiere declarar `@grant GM_setValue` y `@grant GM_getValue` en la cabecera.
   - **Importante**: en cuanto se usa cualquier `@grant` distinto de `none`, Tampermonkey aísla el `window` del script del `window` real de la página. Hay que añadir `@grant unsafeWindow` e inicializar con `unsafeWindow.SDK_INITIALIZED` en vez de `window.SDK_INITIALIZED`, o la inicialización del SDK falla (documentado en la propia guía de troubleshooting del SDK).
 - **Estructura de datos por rectángulo guardado**:
-  `{ id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion }`
-  Identificador `id` único (no el nombre) para permitir nombres duplicados y renombrados sin romper referencias.
+  `{ id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion, geometry }`
+  Identificador `id` único (no el nombre) para permitir nombres duplicados y renombrados sin romper referencias. `geometry` es el `GeoJSON.Polygon` realmente trazado (rectángulo o polígono libre), no recalculado a partir de nivel/lat/lon, para poder reproducir polígonos libres tal cual y exportarlos a WKT/GeoJSON (ver punto 7).
 
 ### 3.1 Arrastre: capa propia + arrastre manual
 

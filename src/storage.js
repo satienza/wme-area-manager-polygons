@@ -1,5 +1,8 @@
 // Persistence of saved rectangles via GM_setValue/GM_getValue.
-// Entry structure: { id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion }
+// Entry structure: { id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion, geometry }
+// `geometry` is the actual traced GeoJSON.Polygon (rectangle or free
+// polygon), not recalculated from nivel/lat/lon, so it can be reproduced and
+// exported as-is (see geometry.js: toGeoJSONFeature/toWKT).
 // See requisitos_wme_area_manager.md, section 3.
 
 const STORAGE_KEY = 'wme-area-manager:rectangles';

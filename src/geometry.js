@@ -74,3 +74,39 @@ export function buildDiagonals(polygon) {
     { type: 'LineString', coordinates: [se, nw] },
   ];
 }
+
+/**
+ * Bounding box of a polygon's outer ring, from raw min/max — no Turf needed.
+ * Used to center/zoom the map on a saved shape (see saved-shape-layer.js).
+ * @param {GeoJSON.Polygon} geometry
+ * @returns {[number, number, number, number]} [west, south, east, north]
+ */
+export function geometryBbox(geometry) {
+  const [ring] = geometry.coordinates;
+  const lons = ring.map(([lon]) => lon);
+  const lats = ring.map(([, lat]) => lat);
+  return [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+}
+
+/**
+ * Wraps a saved entry's `geometry` in a GeoJSON Feature carrying the rest of
+ * the entry as properties. See requisitos_wme_area_manager.md, section 2 (point 7).
+ * @param {{ geometry: GeoJSON.Polygon, [key: string]: any }} entry
+ * @returns {GeoJSON.Feature}
+ */
+export function toGeoJSONFeature(entry) {
+  const { geometry, ...properties } = entry;
+  return { type: 'Feature', geometry, properties };
+}
+
+/**
+ * Manual GeoJSON.Polygon -> WKT conversion (no new dependency).
+ * @param {GeoJSON.Polygon} polygon
+ * @returns {string}
+ */
+export function toWKT(polygon) {
+  const rings = polygon.coordinates
+    .map((ring) => `(${ring.map(([lon, lat]) => `${lon} ${lat}`).join(', ')})`)
+    .join(', ');
+  return `POLYGON(${rings})`;
+}

@@ -29,29 +29,38 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 
 **Criterio de salida**: desde el panel se puede trazar un polígono de forma libre, ver si su área cumple el nivel del usuario, borrar vértices sueltos y obtener su enlace.
 
-## Fase 3 — Persistencia y guardado con nombre
+## Fase 3 — Persistencia y guardado con nombre (hecho)
 
-- Wrapper de `GM_setValue`/`GM_getValue` (`src/storage.js`) sobre la estructura `{ id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion }`.
+- Wrapper de `GM_setValue`/`GM_getValue` (`src/storage.js`) sobre la estructura `{ id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion, geometry }`, donde `geometry` es el `GeoJSON.Polygon` trazado (rectángulo o polígono libre), no reconstruido a partir de nivel/lat/lon — necesario para reproducir polígonos libres y para la exportación.
 - Campo de nombre + botón "Guardar" en el panel.
 - Validación: nombre obligatorio para guardar.
+- Funciones de exportación (`src/geometry.js`): `toGeoJSONFeature(entry)` (envuelve `geometry` en un `Feature` con las propiedades del guardado) y `toWKT(polygon)` (conversión manual a texto `POLYGON(...)`, sin dependencia nueva). La Fase 3 deja estas funciones listas; el botón "Exportar" del panel (Fase 4, ver requisitos punto 7) las consume.
 
-**Criterio de salida**: un rectángulo guardado sobrevive a recargar la página.
+**Criterio de salida**: un rectángulo o polígono guardado sobrevive a recargar la página con su forma exacta, y puede exportarse a GeoJSON o WKT.
 
-## Fase 4 — Gestión desde el panel
+## Fase 4 — Gestión desde el panel (hecho)
 
-- Listado de guardados (nombre, nivel, fecha) en el sidebar.
-- Acciones por entrada: cargar/centrar (`centerMapOnGeometry`), copiar enlace, renombrar, eliminar.
-- Botón de limpieza del dibujo activo, independiente de la lista de guardados.
+- Listado de guardados (`loadRectangles()`, `src/storage.js`): nombre, nivel, fecha, por entrada.
+- Capa nueva y mínima de solo lectura `SavedShapeLayer` (`src/saved-shape-layer.js`): dibuja `entry.geometry` tal cual (un único estilo de contorno, sin marcadores de vértice ni coloreado de validez ni manejadores de clic) — para repasar una figura guardada sin arrastrar el comportamiento de edición de `PolygonLayer` (borrado de vértice al clicar, color verde/rojo).
+- Acciones por entrada:
+  - **Cargar/centrar**: dibuja `entry.geometry` en `SavedShapeLayer` y centra la vista con `centerMapOnGeometry(geometry)` (bbox calculado directamente de las coordenadas — min/max manual, sin Turf — en vez de reconstruir un rectángulo desde `lat`/`lon`/`nivel`, ya que la fuente de verdad es la geometría exacta guardada en la Fase 3).
+  - **Editar**: pasa la figura mostrada (recién colocada o cargada desde la lista) a `PolygonLayer` — el mismo modo de edición de la Fase 2 (marcadores de vértice, borrado por clic, contorno verde/rojo según el límite del nivel actual) — y la deja como `currentEntry` activo para poder arrastrarla (Fase 5) o volver a guardarla (sobrescribe por `id`).
+  - **Exportar**: por entrada, GeoJSON o WKT vía `toGeoJSONFeature(entry)` / `toWKT(entry.geometry)` (`src/geometry.js`, ya listas de la Fase 3); el resultado se vuelca en un campo de texto de solo lectura, igual que el enlace.
+  - **Copiar enlace**: `buildEditorLink({ lat: entry.lat, lon: entry.lon, zoom: entry.zoom, env: entry.env })`.
+  - **Renombrar**: `renameRectangle(id, nombre)` (ya en `storage.js`).
+  - **Eliminar**: `deleteRectangle(id)` (ya en `storage.js`) + quitar del mapa si es la entrada actualmente mostrada.
+- Botón de limpieza del dibujo activo (`clear()` de la capa activa, `SavedShapeLayer` o `PolygonLayer` según el modo), independiente de la lista de guardados.
 
-**Criterio de salida**: gestión completa (crear, listar, cargar, renombrar, borrar) sin recargar la página.
+**Criterio de salida**: gestión completa (crear, listar, cargar, editar, exportar, renombrar, borrar) sin recargar la página.
 
 ## Fase 5 — Arrastre manual
 
-- Eventos de ratón (`wme-map-mouse-down/move/up`) sobre la capa propia para arrastrar el rectángulo manteniendo el área fija.
-- Redibujado en cada movimiento (`removeFeatureFromLayer` + `addFeatureToLayer` o `redrawLayer`).
-- Si el rectángulo arrastrado está guardado, permitir sobrescribir su posición.
+- El arrastre vive dentro del modo edición (`PolygonLayer`, ver Fase 4 "Editar"), no en la vista de solo lectura (`SavedShapeLayer`): solo tiene sentido reposicionar una figura que ya se puede tocar vértice a vértice.
+- Desde la Fase 3, lo guardado/exportado es la geometría exacta trazada, así que el arrastre ya no recalcula un rectángulo nuevo "manteniendo el área fija" (`buildRectangleFromCenter`) — eso solo vale para el caso rectángulo perfecto y rompería un polígono libre editado a mano. En su lugar: **traslación rígida** de todos los vértices por el mismo delta (Δlon, Δlat) del ratón, válida por igual para rectángulo y polígono libre, preservando exactamente la forma exportable.
+- Eventos de ratón (`wme-map-mouse-down/move/up`) sobre `PolygonLayer`: al pulsar dentro del contorno (no sobre un marcador de vértice, reservado para borrar) se inicia el arrastre; en cada movimiento se traslada `coordinates` y se redibuja (`_redraw()`); al soltar se recalcula el centro aproximado (`polygonCenter`) y se actualiza `currentEntry`.
+- Si la figura arrastrada corresponde a un guardado existente (tiene `id`), "Guardar" sobrescribe esa entrada (ya soportado por `saveRectangle`, upsert por `id`).
 
-**Criterio de salida**: arrastre fluido sin tocar el `DataModel` de WME ni generar cambios sin guardar.
+**Criterio de salida**: arrastre fluido de cualquier forma (rectángulo o polígono) en modo edición, sin tocar el `DataModel` de WME, preservando la geometría exacta para guardado/exportación.
 
 ## Fase 6 — Pulido y validación
 

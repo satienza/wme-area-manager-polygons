@@ -3,7 +3,15 @@
 
 import assert from 'node:assert/strict';
 import { getConfigForRank } from './config.js';
-import { buildRectangleFromCenter, buildDiagonals, polygonAreaKm2, polygonCenter } from './geometry.js';
+import {
+  buildRectangleFromCenter,
+  buildDiagonals,
+  geometryBbox,
+  polygonAreaKm2,
+  polygonCenter,
+  toGeoJSONFeature,
+  toWKT,
+} from './geometry.js';
 
 assert.equal(getConfigForRank(0).level, 1);
 assert.equal(getConfigForRank(2).zoom, 14);
@@ -59,5 +67,37 @@ assert.ok(!(121.5 <= maxAreaKm2Level1)); // a much larger area exceeds a level-1
 const center = polygonCenter(squareKm7_59.coordinates[0].slice(0, -1));
 assert.ok(Math.abs(center.lon - -3.7) < 0.001);
 assert.ok(Math.abs(center.lat - 40.4) < 0.001);
+
+// Phase 3: export helpers.
+const entry = {
+  id: 'abc',
+  nombre: 'Test',
+  lat: 40.4,
+  lon: -3.7,
+  nivel: 1,
+  zoom: 15,
+  area_km2: 7.59,
+  env: 'row',
+  fechaCreacion: '2026-01-01T00:00:00.000Z',
+  geometry: squareKm7_59,
+};
+const feature = toGeoJSONFeature(entry);
+assert.equal(feature.type, 'Feature');
+assert.equal(feature.geometry, squareKm7_59);
+assert.equal(feature.properties.nombre, 'Test');
+assert.equal(feature.properties.geometry, undefined);
+
+const wkt = toWKT(squareKm7_59);
+assert.ok(wkt.startsWith('POLYGON(('));
+assert.ok(wkt.endsWith('))'));
+const [lon0, lat0] = squareKm7_59.coordinates[0][0];
+assert.ok(wkt.includes(`${lon0} ${lat0}`));
+
+// Phase 4: bbox for "Cargar/centrar" on a saved shape (no Turf).
+const bbox = geometryBbox(squareKm7_59);
+const [ring] = squareKm7_59.coordinates;
+const lons = ring.map((c) => c[0]);
+const lats = ring.map((c) => c[1]);
+assert.deepEqual(bbox, [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)]);
 
 console.log('self-check OK');

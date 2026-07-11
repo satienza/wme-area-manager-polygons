@@ -1,5 +1,6 @@
 import { RectangleLayer } from './map-layer.js';
 import { PolygonLayer } from './polygon-layer.js';
+import { SavedShapeLayer } from './saved-shape-layer.js';
 import { initSidebar } from './sidebar.js';
 
 function initScript() {
@@ -11,7 +12,8 @@ function initScript() {
   sdk.Events.once({ eventName: 'wme-ready' }).then(() => {
     const layer = new RectangleLayer(sdk);
     const polygonLayer = new PolygonLayer(sdk);
-    initSidebar({ sdk, layer, polygonLayer });
+    const savedShapeLayer = new SavedShapeLayer(sdk);
+    initSidebar({ sdk, layer, polygonLayer, savedShapeLayer });
   });
 }
 
