@@ -52,6 +52,7 @@ Userscript (Tampermonkey) para el Waze Map Editor (WME) que traza un rectángulo
 - **Estructura de datos por rectángulo guardado**:
   `{ id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion, geometry }`
   Identificador `id` único (no el nombre) para permitir nombres duplicados y renombrados sin romper referencias. `geometry` es el `GeoJSON.Polygon` realmente trazado (rectángulo o polígono libre), no recalculado a partir de nivel/lat/lon, para poder reproducir polígonos libres tal cual y exportarlos a WKT/GeoJSON (ver punto 7).
+- **Distribución/publicación**: el script se publica en Greasyfork con sincronización automática vía webhook de push, lo que exige que el `.user.js` compilado esté versionado en un repositorio GitHub, GitLab o Bitbucket (Greasyfork no soporta webhooks de Forgejo directamente). El desarrollo vive en Forgejo autoalojado (`forgejo.petricor.net`), así que se usa como puente el mirror `github.com/satienza/wme-area-manager-polygons`. `@updateURL`/`@downloadURL` de la cabecera apuntan a la URL raw de ese mirror, para que Tampermonkey también pueda autoactualizar directamente.
 
 ### 3.1 Arrastre: capa propia + arrastre manual
 
@@ -85,3 +86,4 @@ Userscript (Tampermonkey) para el Waze Map Editor (WME) que traza un rectángulo
 4. Implementar el arrastre manual sobre la capa propia (eventos de ratón + recálculo de geometría).
 5. Definir metadatos del userscript (`@match`, `@grant GM_setValue/GM_getValue/unsafeWindow`, versión SDK requerida).
 6. Extraer los textos del panel a un diccionario `i18n` con función `t()`, dejando preparada la estructura para añadir idiomas.
+7. Empaquetado final: versionar `dist/wme-area-manager.user.js` en el repo, fijar `@updateURL`/`@downloadURL` al mirror GitHub y configurar el push-mirror desde Forgejo más el webhook de Greasyfork para autoactualización de la ficha.

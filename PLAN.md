@@ -82,7 +82,30 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 - Texto de instrucciones en el panel: bloque breve en el sidebar (`src/sidebar.js`, junto a los controles de modo polígono) que explique el modelo de edición de la Fase 6 — clic en el borde añade un punto, clic en el interior (relleno) arrastra la figura, clic en un vértice lo arrastra, hover sobre un vértice + tecla configurada lo borra.
 - Configuración del atajo de borrado desde el panel: control en el sidebar para elegir/cambiar la tecla del atajo de borrado de vértices (hoy fija en `PolygonLayer`), persistido igual que el resto de preferencias (`GM_setValue`/`GM_getValue`, `src/storage.js`) y re-registrado con `Shortcuts.deleteShortcut` + `Shortcuts.createShortcut` al cambiar.
 
-## Fase 8 — Empaquetado
+## Fase 8 — Traducciones (i18n)
+
+- Módulo nuevo `src/i18n.js`: diccionario de textos por idioma y función `t(clave)` que devuelve el texto del idioma activo; empieza con `es` como único idioma, con las claves extraídas literalmente de los textos ya existentes en `src/sidebar.js` y `src/link.js`.
+- Detección de idioma: `navigator.language` como fuente, con `es` como idioma por defecto si no hay traducción disponible para ese idioma.
+- Migración de los literales hardcodeados en `src/sidebar.js` (labels del selector de forma, placeholder de nombre, texto de botones, mensajes de estado) para que consuman `t('clave')` en vez de la cadena directa.
+- El objetivo de la fase es dejar la infraestructura lista (diccionario + función `t()` + un único idioma migrado), no traducir a un segundo idioma todavía — eso queda fuera de alcance de esta fase.
+
+**Criterio de salida**: todos los textos visibles del panel se sirven a través de `t()` desde un diccionario centralizado en `src/i18n.js`, con español como idioma por defecto y sin cambio de comportamiento visible respecto a hoy.
+
+## Fase 9 — Interfaz
+
+- Diseño del panel (`src/sidebar.js`): separa los controles en dos bloques visuales con encabezado — "Figura actual" (selector de forma/aspecto, botón de colocar, estado, enlace, nombre, guardar, limpiar, exportación) y "Guardadas" (la lista). Un único `<style>` inyectado en el propio `tabPane` aporta el aspecto (borde, padding, espaciado), sin hoja de estilos externa ni dependencia nueva.
+- Iconos con Font Awesome (`fa fa-save`, `fa fa-edit`, `fa fa-trash`, `fa fa-tag`, `fa fa-link`), sin dependencia nueva: WME ya sirve Font Awesome en la propia página del editor (de ahí que exista un userscript de terceros dedicado solo a corregir iconos de otros scripts cuando WME cambia de versión de FA), así que un `<i class="fa fa-...">` junto al texto ya existente del botón basta — en guardar, y por entrada de la lista en editar, eliminar, renombrar y copiar enlace.
+- Abreviación del nivel en la lista de guardados (`buildEntryRow`, `src/sidebar.js`): "N4" en vez de "nivel 4"; el mensaje de estado de validación de área conserva su redacción actual ("dentro del límite del nivel X").
+- Vértice armado para arrastre (`src/polygon-layer.js`): nueva propiedad `dragging` por vértice en `_redraw()` y regla de estilo adicional (color distinto) para el vértice con `pointIndex === vertexDragIndex`; `_redraw()` se invoca también al armar el arrastre y en ambos puntos de suelta (clic sobre marcador y clic que falla toda feature) para que el cambio de color sea inmediato.
+
+**Criterio de salida**: el panel muestra visualmente separadas la figura en edición y la lista de guardados, con iconos en guardar/editar/eliminar/ renombrar/copiar enlace y el nivel abreviado ("N4"); al armar el arrastre de un vértice, éste cambia de color hasta soltarlo.
+
+## Fase 10 — Empaquetado
 
 - Build final del `.user.js` con cabecera de metadatos completa (`@match`, `@grant`, `@version`, `@updateURL`/`@downloadURL` si se aloja para autoupdate).
+- `dist/wme-area-manager.user.js` deja de estar en `.gitignore` y queda versionado en el repo: es el archivo que sirve la URL raw para Greasyfork y para el autoupdate de Tampermonkey.
+- `@updateURL`/`@downloadURL` en `src/header.js` apuntando a la URL raw del mirror GitHub del proyecto: `https://raw.githubusercontent.com/satienza/wme-area-manager-polygons/main/dist/wme-area-manager.user.js`.
+- Fuente única de verdad para la versión: `package.json`; el build (`build.js`) la vuelca en la cabecera al compilar, en vez de mantenerla duplicada a mano en `header.js`.
+- El commit del build en cada release se automatiza con el hook de ciclo de vida `version` de `npm version` (sube la versión, corre el build y añade `dist/` al mismo commit/tag), sin paso manual ni script de release aparte.
+- Webhook de Greasyfork para autoactualización de la ficha al hacer push: Greasyfork solo soporta GitHub, GitLab o Bitbucket como origen del webhook, y el desarrollo vive en Forgejo autoalojado (`forgejo.petricor.net`), así que se usa como puente el mirror `https://github.com/satienza/wme-area-manager-polygons` (rama `main`). Pasos operativos (fuera del repo): push-mirror de Forgejo hacia ese repo GitHub; en la ficha de Greasyfork (pestaña Admin) fijar la sync URL a la URL raw de arriba; en el repo GitHub añadir el webhook `https://greasyfork.org/en/users/1062697-freakyman/webhook` (content type `application/json`, disparado en eventos push).
 - Changelog inicial.
