@@ -76,21 +76,34 @@ export function buildDiagonals(polygon) {
 }
 
 /**
- * Ray-casting point-in-polygon test, used to tell whether a mouse-down
- * landed inside a drawn ring (drag start) vs. outside it. No Turf needed.
+ * Nearest edge of a ring to a point (planar distance, no Turf needed). Used
+ * to find where a new vertex should be inserted when the user clicks on the
+ * polygon's outline.
  * @param {GeoJSON.Position} pointCoord - [lon, lat].
- * @param {GeoJSON.Position[]} ring - closed or open ring.
- * @returns {boolean}
+ * @param {GeoJSON.Position[]} coordinates - ring without the closing point.
+ * @returns {number} index i such that the new vertex goes between
+ *   coordinates[i] and coordinates[i+1] (wrapping to 0 after the last).
  */
-export function pointInRing([x, y], ring) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i];
-    const [xj, yj] = ring[j];
-    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-    if (intersect) inside = !inside;
+export function nearestEdgeIndex([x, y], coordinates) {
+  let bestIndex = 0;
+  let bestDistSq = Infinity;
+  const n = coordinates.length;
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = coordinates[i];
+    const [x2, y2] = coordinates[(i + 1) % n];
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / lenSq));
+    const px = x1 + t * dx;
+    const py = y1 + t * dy;
+    const distSq = (x - px) ** 2 + (y - py) ** 2;
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestIndex = i;
+    }
   }
-  return inside;
+  return bestIndex;
 }
 
 /**

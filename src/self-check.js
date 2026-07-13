@@ -7,7 +7,7 @@ import {
   buildRectangleFromCenter,
   buildDiagonals,
   geometryBbox,
-  pointInRing,
+  nearestEdgeIndex,
   polygonAreaKm2,
   polygonCenter,
   toGeoJSONFeature,
@@ -101,9 +101,14 @@ const lons = ring.map((c) => c[0]);
 const lats = ring.map((c) => c[1]);
 assert.deepEqual(bbox, [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)]);
 
-// Phase 5: point-in-ring test that gates drag start in PolygonLayer.
+// Phase 6: nearest-edge test that places a vertex inserted by a click on
+// the outline, in PolygonLayer. Ring order from buildRectangleFromCenter:
+// [SW, SE, NE, NW].
 const squareRing = squareKm7_59.coordinates[0];
-assert.ok(pointInRing([-3.7, 40.4], squareRing)); // center: inside
-assert.ok(!pointInRing([0, 0], squareRing)); // far away: outside
+const [sw, se, ne, nw] = squareRing.slice(0, -1);
+const midpoint = ([x1, y1], [x2, y2]) => [(x1 + x2) / 2, (y1 + y2) / 2];
+assert.equal(nearestEdgeIndex(midpoint(sw, se), [sw, se, ne, nw]), 0); // south edge
+assert.equal(nearestEdgeIndex(midpoint(se, ne), [sw, se, ne, nw]), 1); // east edge
+assert.equal(nearestEdgeIndex(midpoint(nw, sw), [sw, se, ne, nw]), 3); // west edge (wraps NW -> SW)
 
 console.log('self-check OK');

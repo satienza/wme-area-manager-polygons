@@ -62,13 +62,27 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 
 **Criterio de salida**: arrastre fluido de cualquier forma (rectángulo o polígono) en modo edición, sin tocar el `DataModel` de WME, preservando la geometría exacta para guardado/exportación.
 
-## Fase 6 — Pulido y validación
+## Fase 6 — Edición de puntos
+
+- Tres features por polígono en `PolygonLayer` (`_redraw()`), apiladas en este orden para que el propio hit-testing del SDK (no matemática propia) decida qué se ha clicado: `'fill'` (relleno semitransparente de todo el interior, verde/rojo según validez, `fillOpacity: 0.15`), `'outline'` (solo trazo, sin relleno) encima, y los marcadores `vertex-*` encima de ambas. Como el trazo queda por encima del relleno, un clic cerca del borde siempre resuelve a `'outline'`; un clic en el interior, lejos del trazo, resuelve a `'fill'`.
+- Añadir vértices: clic sobre `'outline'` inserta un vértice nuevo en la arista más cercana (`nearestEdgeIndex`, `src/geometry.js`), usando la última posición conocida del ratón (`wme-map-mouse-move`), ya que el evento de clic sobre una feature no lleva coordenadas.
+- Arrastrar la figura completa: clic sobre `'fill'` (el relleno interior, visualmente distinguible como zona clicable) arma el arrastre — sustituye al test geométrico propio (`pointInRing`, eliminado) usado en la Fase 5; el resto del comportamiento (traslación rígida, clic-clic) no cambia.
+- Mover un vértice: un clic sobre su marcador arma su arrastre (mismo modelo clic-clic, ahora también por vértice individual); cada `wme-map-mouse-move` sigue el cursor directamente (sin traslación rígida, es un único punto); un segundo clic lo suelta.
+- Borrado de vértices: sustituye el clic izquierdo de la Fase 2 por el mismo convenio del editor nativo de WME para geometrías — situarse sobre el marcador (`wme-layer-feature-mouse-enter`/`-leave`) y pulsar la tecla configurada (`Shortcuts.createShortcut` del SDK; no existe evento `keydown` nativo). Mantiene la regla de mínimo 3 vértices.
+- Todas las acciones (añadir, mover, borrar) recalculan el contorno y llaman a `onChange`, igual que ya hacía el borrado, por lo que `sidebar.js` no necesita cambios.
+- Solo aplica al modo edición de polígono (`PolygonLayer`); no toca `RectangleLayer` ni `SavedShapeLayer`.
+
+**Criterio de salida**: desde el modo edición se puede añadir un vértice clicando sobre el borde, arrastrar la figura completa clicando en su interior relleno, reposicionar un vértice arrastrándolo y borrarlo pasando el ratón por encima y pulsando la tecla configurada — cada gesto resuelve siempre a la misma acción, sin ambigüedad entre borde e interior.
+
+## Fase 7 — Pulido y validación
 
 - Detección fiable de `env` para el enlace (con `row` por defecto).
 - Confirmar mapeo real `rank` ↔ niveles 1-5 con cuentas de distinto nivel.
 - Manejo de errores de la API SDK (capas inexistentes, guardado corrupto en `GM_getValue`, etc.).
+- Texto de instrucciones en el panel: bloque breve en el sidebar (`src/sidebar.js`, junto a los controles de modo polígono) que explique el modelo de edición de la Fase 6 — clic en el borde añade un punto, clic en el interior (relleno) arrastra la figura, clic en un vértice lo arrastra, hover sobre un vértice + tecla configurada lo borra.
+- Configuración del atajo de borrado desde el panel: control en el sidebar para elegir/cambiar la tecla del atajo de borrado de vértices (hoy fija en `PolygonLayer`), persistido igual que el resto de preferencias (`GM_setValue`/`GM_getValue`, `src/storage.js`) y re-registrado con `Shortcuts.deleteShortcut` + `Shortcuts.createShortcut` al cambiar.
 
-## Fase 7 — Empaquetado
+## Fase 8 — Empaquetado
 
 - Build final del `.user.js` con cabecera de metadatos completa (`@match`, `@grant`, `@version`, `@updateURL`/`@downloadURL` si se aloja para autoupdate).
 - Changelog inicial.
