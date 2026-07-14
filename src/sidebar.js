@@ -16,6 +16,7 @@ import {
 } from './geometry.js';
 import { buildEditorLink } from './link.js';
 import { deleteRectangle, loadRectangles, renameRectangle, saveRectangle } from './storage.js';
+import { t } from './i18n.js';
 
 const ASPECT_RATIOS = [
   { label: '1:1', value: 1 },
@@ -24,8 +25,8 @@ const ASPECT_RATIOS = [
 ];
 
 const SHAPES = [
-  { label: 'Rectángulo', value: 'rectangle' },
-  { label: 'Polígono', value: 'polygon' },
+  { label: t('shapeRectangle'), value: 'rectangle' },
+  { label: t('shapePolygon'), value: 'polygon' },
 ];
 
 // TODO (Phase 5): derive from window.location instead of always 'row'.
@@ -41,7 +42,7 @@ function formatTimestamp(date) {
 
 export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
   sdk.Sidebar.registerScriptTab().then(({ tabLabel, tabPane }) => {
-    tabLabel.innerText = 'Area Manager';
+    tabLabel.innerText = t('tabLabel');
 
     const shapeSelect = document.createElement('select');
     for (const { label, value } of SHAPES) {
@@ -75,16 +76,16 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
 
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
-    nameInput.placeholder = 'Nombre';
+    nameInput.placeholder = t('namePlaceholder');
     nameInput.style.width = '100%';
     tabPane.appendChild(nameInput);
 
     const saveButton = document.createElement('button');
-    saveButton.innerText = 'Guardar';
+    saveButton.innerText = t('save');
     tabPane.appendChild(saveButton);
 
     const clearButton = document.createElement('button');
-    clearButton.innerText = 'Limpiar dibujo';
+    clearButton.innerText = t('clearDrawing');
     tabPane.appendChild(clearButton);
 
     const exportOutput = document.createElement('textarea');
@@ -117,15 +118,15 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     saveButton.addEventListener('click', () => {
       const nombre = nameInput.value.trim();
       if (!nombre) {
-        statusDiv.innerText = 'El nombre es obligatorio para guardar.';
+        statusDiv.innerText = t('nameRequired');
         return;
       }
       if (!currentEntry) {
-        statusDiv.innerText = 'No hay ninguna figura para guardar.';
+        statusDiv.innerText = t('nothingToSave');
         return;
       }
       saveRectangle({ ...currentEntry, nombre });
-      statusDiv.innerText = `Guardado "${nombre}".`;
+      statusDiv.innerText = t('saved', nombre);
       renderList();
     });
 
@@ -138,7 +139,7 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       listContainer.innerHTML = '';
       const rectangles = loadRectangles();
       if (rectangles.length === 0) {
-        listContainer.innerText = 'No hay figuras guardadas.';
+        listContainer.innerText = t('noSavedShapes');
         return;
       }
       for (const entry of rectangles) {
@@ -152,7 +153,7 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       row.style.padding = '4px 0';
 
       const title = document.createElement('div');
-      title.innerText = `${entry.nombre} — nivel ${entry.nivel} — ${new Date(entry.fechaCreacion).toLocaleString()}`;
+      title.innerText = t('entryTitle', entry.nombre, entry.nivel, new Date(entry.fechaCreacion).toLocaleString());
       row.appendChild(title);
 
       const actions = document.createElement('div');
@@ -165,14 +166,14 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
         actions.appendChild(button);
       }
 
-      addAction('Cargar', () => {
+      addAction(t('load'), () => {
         savedShapeLayer.draw(entry.geometry);
         sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
         activeLayer = savedShapeLayer;
         shownEntryId = entry.id;
       });
 
-      addAction('Editar', () => {
+      addAction(t('edit'), () => {
         currentEntry = { ...entry, env: DEFAULT_ENV };
         nameInput.value = entry.nombre;
         polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus });
@@ -180,33 +181,33 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
         activeLayer = polygonLayer;
       });
 
-      addAction('GeoJSON', () => {
+      addAction(t('exportGeoJSON'), () => {
         exportOutput.value = JSON.stringify(toGeoJSONFeature(entry));
       });
 
-      addAction('WKT', () => {
+      addAction(t('exportWKT'), () => {
         exportOutput.value = toWKT(entry.geometry);
       });
 
-      addAction('Copiar enlace', () => {
+      addAction(t('copyLink'), () => {
         const enlace = buildEditorLink({ lat: entry.lat, lon: entry.lon, zoom: entry.zoom, env: entry.env });
         navigator.clipboard.writeText(enlace).then(
-          () => { statusDiv.innerText = 'Enlace copiado.'; },
+          () => { statusDiv.innerText = t('linkCopied'); },
           () => {
             linkInput.value = enlace;
-            statusDiv.innerText = 'No se pudo copiar automáticamente; usa el campo de enlace.';
+            statusDiv.innerText = t('linkCopyFailed');
           },
         );
       });
 
-      addAction('Renombrar', () => {
-        const nombre = prompt('Nuevo nombre:', entry.nombre);
+      addAction(t('rename'), () => {
+        const nombre = prompt(t('renamePrompt'), entry.nombre);
         if (!nombre) return;
         renameRectangle(entry.id, nombre);
         renderList();
       });
 
-      addAction('Eliminar', () => {
+      addAction(t('delete'), () => {
         deleteRectangle(entry.id);
         if (currentEntry?.id === entry.id) {
           polygonLayer.clear();
@@ -227,7 +228,7 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     function updateShapeUI() {
       const isRectangle = shapeSelect.value === 'rectangle';
       aspectSelect.style.display = isRectangle ? '' : 'none';
-      placeButton.innerText = isRectangle ? 'Colocar rectángulo' : 'Colocar polígono';
+      placeButton.innerText = isRectangle ? t('placeRectangle') : t('placePolygon');
     }
     shapeSelect.addEventListener('change', updateShapeUI);
     updateShapeUI();
@@ -244,8 +245,8 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       const valid = areaKm2 <= maxAreaKm2;
       polygonLayer.setValid(valid);
       statusDiv.innerText = valid
-        ? `Área: ${areaKm2.toFixed(2)} km² — dentro del límite del nivel ${level} (máx. ${maxAreaKm2} km²)`
-        : `Área: ${areaKm2.toFixed(2)} km² — supera el límite del nivel ${level} (máx. ${maxAreaKm2} km²)`;
+        ? t('areaWithinLimit', areaKm2.toFixed(2), level, maxAreaKm2)
+        : t('areaExceedsLimit', areaKm2.toFixed(2), level, maxAreaKm2);
 
       const { lon, lat } = polygonCenter(polygon.coordinates[0].slice(0, -1));
       linkInput.value = buildEditorLink({ lat, lon, zoom });
@@ -273,7 +274,7 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     async function placePolygon() {
       const polygon = await sdk.Map.drawPolygon();
       if (!polygon) {
-        statusDiv.innerText = 'Dibujo cancelado.';
+        statusDiv.innerText = t('drawingCancelled');
         return;
       }
       currentEntry = null; // fresh placement, not an edit of a saved entry
@@ -292,7 +293,7 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
           await placePolygon();
         }
       } catch (error) {
-        statusDiv.innerText = `No se pudo colocar la figura: ${error.message}. Prueba a acercar el zoom.`;
+        statusDiv.innerText = t('placementFailed', error.message);
       }
     });
   });

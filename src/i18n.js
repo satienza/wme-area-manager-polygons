@@ -1,0 +1,53 @@
+// i18n scaffolding (Phase 7): dictionary per language + t(key) lookup.
+// Only `es` exists for now — a second language plugs in by adding an entry
+// to DICTIONARIES, no other code changes needed.
+// See requisitos_wme_area_manager.md and PLAN.md, Fase 7.
+
+const DICTIONARIES = {
+  es: {
+    tabLabel: 'Area Manager',
+    shapeRectangle: 'Rectángulo',
+    shapePolygon: 'Polígono',
+    namePlaceholder: 'Nombre',
+    save: 'Guardar',
+    clearDrawing: 'Limpiar dibujo',
+    nameRequired: 'El nombre es obligatorio para guardar.',
+    nothingToSave: 'No hay ninguna figura para guardar.',
+    saved: (nombre) => `Guardado "${nombre}".`,
+    noSavedShapes: 'No hay figuras guardadas.',
+    entryTitle: (nombre, nivel, fecha) => `${nombre} — nivel ${nivel} — ${fecha}`,
+    load: 'Cargar',
+    edit: 'Editar',
+    exportGeoJSON: 'GeoJSON',
+    exportWKT: 'WKT',
+    copyLink: 'Copiar enlace',
+    rename: 'Renombrar',
+    delete: 'Eliminar',
+    linkCopied: 'Enlace copiado.',
+    linkCopyFailed: 'No se pudo copiar automáticamente; usa el campo de enlace.',
+    renamePrompt: 'Nuevo nombre:',
+    placeRectangle: 'Colocar rectángulo',
+    placePolygon: 'Colocar polígono',
+    areaWithinLimit: (areaKm2, level, maxAreaKm2) =>
+      `Área: ${areaKm2} km² — dentro del límite del nivel ${level} (máx. ${maxAreaKm2} km²)`,
+    areaExceedsLimit: (areaKm2, level, maxAreaKm2) =>
+      `Área: ${areaKm2} km² — supera el límite del nivel ${level} (máx. ${maxAreaKm2} km²)`,
+    drawingCancelled: 'Dibujo cancelado.',
+    placementFailed: (message) => `No se pudo colocar la figura: ${message}. Prueba a acercar el zoom.`,
+  },
+};
+
+const DEFAULT_LANG = 'es';
+
+function detectLang() {
+  const raw = (typeof navigator !== 'undefined' && navigator.language) || DEFAULT_LANG;
+  const lang = raw.split('-')[0];
+  return DICTIONARIES[lang] ? lang : DEFAULT_LANG;
+}
+
+const activeLang = detectLang();
+
+export function t(key, ...args) {
+  const entry = DICTIONARIES[activeLang]?.[key] ?? DICTIONARIES[DEFAULT_LANG][key];
+  return typeof entry === 'function' ? entry(...args) : entry;
+}

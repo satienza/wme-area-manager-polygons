@@ -74,20 +74,20 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 
 **Criterio de salida**: desde el modo edición se puede añadir un vértice clicando sobre el borde, arrastrar la figura completa clicando en su interior relleno, reposicionar un vértice arrastrándolo y borrarlo pasando el ratón por encima y pulsando la tecla configurada — cada gesto resuelve siempre a la misma acción, sin ambigüedad entre borde e interior.
 
-## Fase 7 — Pulido y validación
+## Fase 7 — Traducciones (i18n) (hecho)
+
+- Módulo nuevo `src/i18n.js`: diccionario de textos por idioma y función `t(clave)` que devuelve el texto del idioma activo; empieza con `es` como único idioma, con las claves extraídas literalmente de los textos ya existentes en `src/sidebar.js` y `src/link.js`.
+- Detección de idioma: `navigator.language` como fuente, con `es` como idioma por defecto si no hay traducción disponible para ese idioma.
+- Migración de los literales hardcodeados en `src/sidebar.js` (labels del selector de forma, placeholder de nombre, texto de botones, mensajes de estado) para que consuman `t('clave')` en vez de la cadena directa.
+- El objetivo de la fase es dejar la infraestructura lista (diccionario + función `t()` + un único idioma migrado), no traducir a un segundo idioma todavía — eso queda fuera de alcance de esta fase.
+
+## Fase 8 — Pulido y validación
 
 - Detección fiable de `env` para el enlace (con `row` por defecto).
 - Confirmar mapeo real `rank` ↔ niveles 1-5 con cuentas de distinto nivel.
 - Manejo de errores de la API SDK (capas inexistentes, guardado corrupto en `GM_getValue`, etc.).
 - Texto de instrucciones en el panel: bloque breve en el sidebar (`src/sidebar.js`, junto a los controles de modo polígono) que explique el modelo de edición de la Fase 6 — clic en el borde añade un punto, clic en el interior (relleno) arrastra la figura, clic en un vértice lo arrastra, hover sobre un vértice + tecla configurada lo borra.
 - Configuración del atajo de borrado desde el panel: control en el sidebar para elegir/cambiar la tecla del atajo de borrado de vértices (hoy fija en `PolygonLayer`), persistido igual que el resto de preferencias (`GM_setValue`/`GM_getValue`, `src/storage.js`) y re-registrado con `Shortcuts.deleteShortcut` + `Shortcuts.createShortcut` al cambiar.
-
-## Fase 8 — Traducciones (i18n)
-
-- Módulo nuevo `src/i18n.js`: diccionario de textos por idioma y función `t(clave)` que devuelve el texto del idioma activo; empieza con `es` como único idioma, con las claves extraídas literalmente de los textos ya existentes en `src/sidebar.js` y `src/link.js`.
-- Detección de idioma: `navigator.language` como fuente, con `es` como idioma por defecto si no hay traducción disponible para ese idioma.
-- Migración de los literales hardcodeados en `src/sidebar.js` (labels del selector de forma, placeholder de nombre, texto de botones, mensajes de estado) para que consuman `t('clave')` en vez de la cadena directa.
-- El objetivo de la fase es dejar la infraestructura lista (diccionario + función `t()` + un único idioma migrado), no traducir a un segundo idioma todavía — eso queda fuera de alcance de esta fase.
 
 **Criterio de salida**: todos los textos visibles del panel se sirven a través de `t()` desde un diccionario centralizado en `src/i18n.js`, con español como idioma por defecto y sin cambio de comportamiento visible respecto a hoy.
 

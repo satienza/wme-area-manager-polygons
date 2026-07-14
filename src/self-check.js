@@ -13,6 +13,7 @@ import {
   toGeoJSONFeature,
   toWKT,
 } from './geometry.js';
+import { t } from './i18n.js';
 
 assert.equal(getConfigForRank(0).level, 1);
 assert.equal(getConfigForRank(2).zoom, 14);
@@ -110,5 +111,12 @@ const midpoint = ([x1, y1], [x2, y2]) => [(x1 + x2) / 2, (y1 + y2) / 2];
 assert.equal(nearestEdgeIndex(midpoint(sw, se), [sw, se, ne, nw]), 0); // south edge
 assert.equal(nearestEdgeIndex(midpoint(se, ne), [sw, se, ne, nw]), 1); // east edge
 assert.equal(nearestEdgeIndex(midpoint(nw, sw), [sw, se, ne, nw]), 3); // west edge (wraps NW -> SW)
+
+// Phase 7: i18n lookup — plain string, interpolated function, and fallback
+// to `es` for a language with no dictionary (no `navigator` under Node, so
+// detectLang() already falls back to the default at module load).
+assert.equal(t('save'), 'Guardar');
+assert.equal(t('saved', 'Test'), 'Guardado "Test".');
+assert.equal(t('entryTitle', 'Test', 1, '1/1/2026'), 'Test — nivel 1 — 1/1/2026');
 
 console.log('self-check OK');
