@@ -35,6 +35,37 @@ const DICTIONARIES = {
     drawingCancelled: 'Dibujo cancelado.',
     placementFailed: (message) => `No se pudo colocar la figura: ${message}. Prueba a acercar el zoom.`,
   },
+  en: {
+    tabLabel: 'Area Manager',
+    shapeRectangle: 'Rectangle',
+    shapePolygon: 'Polygon',
+    namePlaceholder: 'Name',
+    save: 'Save',
+    clearDrawing: 'Clear drawing',
+    nameRequired: 'A name is required to save.',
+    nothingToSave: 'There is no shape to save.',
+    saved: (nombre) => `Saved "${nombre}".`,
+    noSavedShapes: 'No saved shapes.',
+    entryTitle: (nombre, nivel, fecha) => `${nombre} — level ${nivel} — ${fecha}`,
+    load: 'Load',
+    edit: 'Edit',
+    exportGeoJSON: 'GeoJSON',
+    exportWKT: 'WKT',
+    copyLink: 'Copy link',
+    rename: 'Rename',
+    delete: 'Delete',
+    linkCopied: 'Link copied.',
+    linkCopyFailed: 'Could not copy automatically; use the link field.',
+    renamePrompt: 'New name:',
+    placeRectangle: 'Place rectangle',
+    placePolygon: 'Place polygon',
+    areaWithinLimit: (areaKm2, level, maxAreaKm2) =>
+      `Area: ${areaKm2} km² — within the level ${level} limit (max ${maxAreaKm2} km²)`,
+    areaExceedsLimit: (areaKm2, level, maxAreaKm2) =>
+      `Area: ${areaKm2} km² — exceeds the level ${level} limit (max ${maxAreaKm2} km²)`,
+    drawingCancelled: 'Drawing cancelled.',
+    placementFailed: (message) => `Could not place the shape: ${message}. Try zooming in.`,
+  },
 };
 
 const DEFAULT_LANG = 'es';
