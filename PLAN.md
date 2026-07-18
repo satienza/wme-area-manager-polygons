@@ -77,7 +77,7 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 ## Fase 7 — Traducciones (i18n) (hecho)
 
 - Módulo nuevo `src/i18n.js`: diccionario de textos por idioma y función `t(clave)` que devuelve el texto del idioma activo; empieza con `es` como único idioma, con las claves extraídas literalmente de los textos ya existentes en `src/sidebar.js` y `src/link.js`.
-- Detección de idioma: `navigator.language` como fuente, con `es` como idioma por defecto si no hay traducción disponible para ese idioma.
+- Detección de idioma: `sdk.Settings.getLocale()` (idioma activo de la interfaz de WME) como fuente, no `navigator.language`, con `es` como idioma por defecto si el SDK no lo expone o no hay traducción disponible para ese idioma. `initI18n(sdk)` se llama en `src/index.js` justo tras crear el `sdk`, antes de construir el panel (`initSidebar()`).
 - Migración de los literales hardcodeados en `src/sidebar.js` (labels del selector de forma, placeholder de nombre, texto de botones, mensajes de estado) para que consuman `t('clave')` en vez de la cadena directa.
 - El objetivo de la fase es dejar la infraestructura lista (diccionario + función `t()` + un único idioma migrado), no traducir a un segundo idioma todavía — eso queda fuera de alcance de esta fase.
 

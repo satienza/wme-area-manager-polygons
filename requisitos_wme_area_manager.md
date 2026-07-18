@@ -39,7 +39,7 @@ Userscript (Tampermonkey) para el Waze Map Editor (WME) que traza un rectángulo
    - `env` debe derivarse del entorno actual (leer de `window.location`/región del editor), con `row` como valor por defecto.
    - `lat`/`lon` con precisión suficiente (5 decimales, igual que el ejemplo).
 10. **Limpieza del dibujo actual**: opción para borrar el rectángulo activo del mapa sin tocar la lista de guardados (`removeAllFeaturesFromLayer`), independiente de "Eliminar" (punto 7), que sí afecta a la lista.
-11. **Internacionalización (i18n)**: los textos del panel se sirven desde un diccionario centralizado (`src/i18n.js`) vía una función `t(clave)`, en vez de estar hardcodeados en cada módulo. Idioma por defecto: español. Detección de idioma por `navigator.language`, con fallback a español. Esta fase prepara la estructura para añadir más idiomas en el futuro; no incluye la traducción a un segundo idioma.
+11. **Internacionalización (i18n)**: los textos del panel se sirven desde un diccionario centralizado (`src/i18n.js`) vía una función `t(clave)`, en vez de estar hardcodeados en cada módulo. Idioma por defecto: español. Detección de idioma según el idioma activo de la propia interfaz de WME (`sdk.Settings.getLocale()`), no el del navegador, con fallback a español si el SDK no lo expone o el idioma detectado no tiene diccionario propio. Esta fase prepara la estructura para añadir más idiomas en el futuro; no incluye la traducción a un segundo idioma.
 
 ## 3. Requisitos técnicos (WME SDK)
 

@@ -82,13 +82,26 @@ const DICTIONARIES = {
 
 const DEFAULT_LANG = 'es';
 
-function detectLang() {
-  const raw = (typeof navigator !== 'undefined' && navigator.language) || DEFAULT_LANG;
-  const lang = raw.split('-')[0];
+function resolveLang(rawLocale) {
+  const lang = String(rawLocale).split('-')[0];
   return DICTIONARIES[lang] ? lang : DEFAULT_LANG;
 }
 
-const activeLang = detectLang();
+let activeLang = DEFAULT_LANG;
+
+// Language comes from WME's own UI locale, not the browser's — an editor's
+// browser and WME language settings aren't guaranteed to match, and the
+// panel lives inside WME. Call once sdk is available, before building any
+// UI that reads t().
+export function initI18n(sdk) {
+  try {
+    const { localeCode } = sdk.Settings.getLocale();
+    activeLang = resolveLang(localeCode);
+  } catch (error) {
+    console.warn('WME Area Manager: no se pudo detectar el idioma de WME; se usa español por defecto.', error);
+    activeLang = DEFAULT_LANG;
+  }
+}
 
 export function t(key, ...args) {
   const entry = DICTIONARIES[activeLang]?.[key] ?? DICTIONARIES[DEFAULT_LANG][key];

@@ -2,6 +2,7 @@ import { RectangleLayer } from './map-layer.js';
 import { PolygonLayer } from './polygon-layer.js';
 import { SavedShapeLayer } from './saved-shape-layer.js';
 import { initSidebar } from './sidebar.js';
+import { initI18n } from './i18n.js';
 import { loadDeleteShortcutKey } from './storage.js';
 
 function initScript() {
@@ -9,6 +10,9 @@ function initScript() {
     scriptId: 'wme-area-manager',
     scriptName: 'WME Area Manager',
   });
+
+  // Must run before any t() call, in particular before initSidebar() builds the panel.
+  initI18n(sdk);
 
   sdk.Events.once({ eventName: 'wme-ready' }).then(() => {
     const layer = new RectangleLayer(sdk);

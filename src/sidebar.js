@@ -31,11 +31,6 @@ const ASPECT_RATIOS = [
   { label: '4:3', value: 4 / 3 },
 ];
 
-const SHAPES = [
-  { label: t('shapeRectangle'), value: 'rectangle' },
-  { label: t('shapePolygon'), value: 'polygon' },
-];
-
 // The SDK's own data model is more reliable than parsing window.location
 // (whose URL scheme isn't guaranteed): Country.regionCode already uses the
 // same 'usa' | 'row' | 'il' values as the link's `env` parameter. Falls back
@@ -60,6 +55,13 @@ function formatTimestamp(date) {
 
 export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
   const DEFAULT_ENV = detectEnv(sdk);
+
+  // Built here (not at module scope) so its t() calls read the language
+  // initI18n(sdk) already resolved — see src/index.js.
+  const SHAPES = [
+    { label: t('shapeRectangle'), value: 'rectangle' },
+    { label: t('shapePolygon'), value: 'polygon' },
+  ];
 
   sdk.Sidebar.registerScriptTab().then(({ tabLabel, tabPane }) => {
     tabLabel.innerText = t('tabLabel');

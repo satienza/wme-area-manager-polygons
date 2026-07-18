@@ -13,10 +13,6 @@ import {
   toGeoJSONFeature,
   toWKT,
 } from './geometry.js';
-// Node 21+ ships a global `navigator` (e.g. language 'en-US'), which would
-// mask the es-fallback path below now that an `en` dictionary also exists.
-// Delete it so detectLang() sees the no-navigator case it was written for.
-delete globalThis.navigator;
 const { t } = await import('./i18n.js');
 
 assert.equal(getConfigForRank(0).level, 1);
@@ -122,9 +118,8 @@ assert.equal(nearestEdgeIndex(midpoint(sw, se), [sw, se, ne, nw]), 0); // south 
 assert.equal(nearestEdgeIndex(midpoint(se, ne), [sw, se, ne, nw]), 1); // east edge
 assert.equal(nearestEdgeIndex(midpoint(nw, sw), [sw, se, ne, nw]), 3); // west edge (wraps NW -> SW)
 
-// Phase 7: i18n lookup — plain string, interpolated function, and fallback
-// to `es` for a language with no dictionary (no `navigator` under Node, so
-// detectLang() already falls back to the default at module load).
+// Phase 7: i18n lookup — plain string and interpolated function. Language
+// defaults to `es` until initI18n(sdk) runs, which this test never calls.
 assert.equal(t('save'), 'Guardar');
 assert.equal(t('saved', 'Test'), 'Guardado "Test".');
 assert.equal(t('entryTitle', 'Test', 1, '1/1/2026'), 'Test — nivel 1 — 1/1/2026');
