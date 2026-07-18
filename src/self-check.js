@@ -13,12 +13,22 @@ import {
   toGeoJSONFeature,
   toWKT,
 } from './geometry.js';
-import { t } from './i18n.js';
+// Node 21+ ships a global `navigator` (e.g. language 'en-US'), which would
+// mask the es-fallback path below now that an `en` dictionary also exists.
+// Delete it so detectLang() sees the no-navigator case it was written for.
+delete globalThis.navigator;
+const { t } = await import('./i18n.js');
 
 assert.equal(getConfigForRank(0).level, 1);
 assert.equal(getConfigForRank(2).zoom, 14);
 assert.equal(getConfigForRank(4).areaKm2, 121.5);
-assert.throws(() => getConfigForRank(99));
+assert.throws(() => getConfigForRank(-1));
+// Ranks 5/6 (SDK's UserRank goes up to 6) aren't in the level 1-5 table;
+// they fall back to the largest defined tier instead of throwing.
+assert.equal(getConfigForRank(5).level, 6);
+assert.equal(getConfigForRank(5).areaKm2, 121.5);
+assert.equal(getConfigForRank(6).level, 7);
+assert.equal(getConfigForRank(6).areaKm2, 121.5);
 
 function checkRectangle(areaKm2, aspectRatio) {
   const center = { lon: -3.7, lat: 40.4 };

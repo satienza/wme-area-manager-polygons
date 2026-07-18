@@ -5,10 +5,30 @@
 // exported as-is (see geometry.js: toGeoJSONFeature/toWKT).
 // See requisitos_wme_area_manager.md, section 3.
 
+import { DEFAULT_DELETE_SHORTCUT_KEY } from './polygon-layer.js';
+
 const STORAGE_KEY = 'wme-area-manager:rectangles';
+const SHORTCUT_KEY_STORAGE_KEY = 'wme-area-manager:delete-shortcut-key';
 
 export function loadRectangles() {
-  return GM_getValue(STORAGE_KEY, []);
+  const raw = GM_getValue(STORAGE_KEY, []);
+  if (!Array.isArray(raw)) {
+    console.warn('WME Area Manager: guardado corrupto en GM_getValue (no es una lista); se ignora.', raw);
+    return [];
+  }
+  return raw.filter((entry) => {
+    const ok = entry && typeof entry === 'object' && entry.id && entry.geometry;
+    if (!ok) console.warn('WME Area Manager: entrada guardada corrupta; se descarta.', entry);
+    return ok;
+  });
+}
+
+export function loadDeleteShortcutKey() {
+  return GM_getValue(SHORTCUT_KEY_STORAGE_KEY, DEFAULT_DELETE_SHORTCUT_KEY);
+}
+
+export function saveDeleteShortcutKey(key) {
+  GM_setValue(SHORTCUT_KEY_STORAGE_KEY, key);
 }
 
 function persist(rectangles) {

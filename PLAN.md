@@ -81,7 +81,7 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 - Migración de los literales hardcodeados en `src/sidebar.js` (labels del selector de forma, placeholder de nombre, texto de botones, mensajes de estado) para que consuman `t('clave')` en vez de la cadena directa.
 - El objetivo de la fase es dejar la infraestructura lista (diccionario + función `t()` + un único idioma migrado), no traducir a un segundo idioma todavía — eso queda fuera de alcance de esta fase.
 
-## Fase 8 — Pulido y validación
+## Fase 8 — Pulido y validación (hecho)
 
 - Detección fiable de `env` para el enlace (con `row` por defecto).
 - Confirmar mapeo real `rank` ↔ niveles 1-5 con cuentas de distinto nivel.

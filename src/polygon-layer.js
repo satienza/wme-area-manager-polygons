@@ -39,18 +39,25 @@
 // by `wme-map-mouse-move`.
 
 import { nearestEdgeIndex } from './geometry.js';
+import { safeAddLayer, safeAddFeature, safeRemoveFeature } from './sdk-safe.js';
 
 const LAYER_NAME = 'wme-area-manager-polygon';
 const MIN_POINTS = 3;
+const SHORTCUT_ID = 'wme-area-manager-delete-vertex';
+export const DEFAULT_DELETE_SHORTCUT_KEY = 'k';
 
 function buildRing(coordinates) {
   return [...coordinates, coordinates[0]];
 }
 
 export class PolygonLayer {
-  constructor(sdk) {
+  /**
+   * @param {string} [deleteShortcutKey] - persisted preference (src/storage.js);
+   *   defaults to the key this script has always used.
+   */
+  constructor(sdk, deleteShortcutKey = DEFAULT_DELETE_SHORTCUT_KEY) {
     this.sdk = sdk;
-    this.sdk.Map.addLayer({
+    safeAddLayer(sdk, {
       layerName: LAYER_NAME,
       styleRules: [
         {
@@ -81,16 +88,8 @@ export class PolygonLayer {
     this.sdk.Events.on({ eventName: 'wme-layer-feature-mouse-leave', eventHandler: this._onFeatureMouseLeave.bind(this) });
     this.sdk.Events.on({ eventName: 'wme-map-mouse-down', eventHandler: this._onMouseDown.bind(this) });
     this.sdk.Events.on({ eventName: 'wme-map-mouse-move', eventHandler: this._onMouseMove.bind(this) });
-    try {
-      this.sdk.Shortcuts.createShortcut({
-        shortcutId: 'wme-area-manager-delete-vertex',
-        shortcutKeys: 'k',
-        description: 'WME Area Manager: borrar el vértice bajo el cursor',
-        callback: this._onDeleteShortcut.bind(this),
-      });
-    } catch (error) {
-      console.warn('WME Area Manager: no se pudo registrar el atajo para borrar vértices.', error);
-    }
+    this.shortcutKey = deleteShortcutKey;
+    this._registerDeleteShortcut();
     this.featureIds = [];
     this.coordinates = [];
     this.onChange = null;
@@ -122,24 +121,48 @@ export class PolygonLayer {
     this._redraw();
   }
 
+  // Registers the delete-vertex shortcut under the current `shortcutKey`.
+  // Shared by the constructor and `setDeleteShortcutKey` (panel control,
+  // Fase 8) so both go through the same try/catch.
+  _registerDeleteShortcut() {
+    try {
+      this.sdk.Shortcuts.createShortcut({
+        shortcutId: SHORTCUT_ID,
+        shortcutKeys: this.shortcutKey,
+        description: 'WME Area Manager: borrar el vértice bajo el cursor',
+        callback: this._onDeleteShortcut.bind(this),
+      });
+    } catch (error) {
+      console.warn('WME Area Manager: no se pudo registrar el atajo para borrar vértices.', error);
+    }
+  }
+
+  /** @param {string} key - single key, persisted by the caller (src/storage.js). */
+  setDeleteShortcutKey(key) {
+    try {
+      this.sdk.Shortcuts.deleteShortcut({ shortcutId: SHORTCUT_ID });
+    } catch (error) {
+      console.warn('WME Area Manager: no se pudo desregistrar el atajo anterior.', error);
+    }
+    this.shortcutKey = key;
+    this._registerDeleteShortcut();
+  }
+
   setValid(valid) {
     for (const role of ['fill', 'outline']) {
-      this.sdk.Map.removeFeatureFromLayer({ layerName: LAYER_NAME, featureId: role });
-      this.sdk.Map.addFeatureToLayer({
-        layerName: LAYER_NAME,
-        feature: {
-          id: role,
-          type: 'Feature',
-          geometry: { type: 'Polygon', coordinates: [buildRing(this.coordinates)] },
-          properties: { role, valid },
-        },
+      safeRemoveFeature(this.sdk, LAYER_NAME, role);
+      safeAddFeature(this.sdk, LAYER_NAME, {
+        id: role,
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [buildRing(this.coordinates)] },
+        properties: { role, valid },
       });
     }
   }
 
   clear() {
     for (const featureId of this.featureIds) {
-      this.sdk.Map.removeFeatureFromLayer({ layerName: LAYER_NAME, featureId });
+      safeRemoveFeature(this.sdk, LAYER_NAME, featureId);
     }
     this.featureIds = [];
   }
@@ -167,7 +190,7 @@ export class PolygonLayer {
       })),
     ];
     for (const feature of features) {
-      this.sdk.Map.addFeatureToLayer({ layerName: LAYER_NAME, feature });
+      safeAddFeature(this.sdk, LAYER_NAME, feature);
       this.featureIds.push(feature.id);
     }
   }

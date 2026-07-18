@@ -7,16 +7,20 @@ export const LEVEL_RULES = [
 ];
 
 /**
- * @param {number} rank - rank exposed by State.getUserInfo() (SDK).
+ * @param {number} rank - rank exposed by State.getUserInfo() (SDK). The SDK's
+ *   `UserRank` type confirms this is 0-6 (7 values), but `LEVEL_RULES` above
+ *   only encodes the levels 1-5 from the community wiki table — ranks 5 and
+ *   6 (Area/Country Managers) fall back to the largest defined tier below
+ *   instead of throwing. That cap is a conservative placeholder, not a
+ *   confirmed value: it still needs checking against a live rank-5/6 account
+ *   (see requisitos_wme_area_manager.md, section 5).
  * @returns {{ level: number, zoom: number, areaKm2: number }}
  */
 export function getConfigForRank(rank) {
-  // TODO (Phase 5): confirm the actual rank (SDK) -> level (1-5) mapping with
-  // accounts of different levels. Provisionally assumes a 0-indexed rank here.
   const level = rank + 1;
-  const rule = LEVEL_RULES.find((r) => r.levels.includes(level));
-  if (!rule) {
-    throw new Error(`No hay regla de área definida para el nivel ${level} (rank ${rank})`);
+  if (level < 1) {
+    throw new Error(`Rank de usuario inválido: ${rank}`);
   }
+  const rule = LEVEL_RULES.find((r) => r.levels.includes(level)) ?? LEVEL_RULES[LEVEL_RULES.length - 1];
   return { level, zoom: rule.zoom, areaKm2: rule.areaKm2 };
 }

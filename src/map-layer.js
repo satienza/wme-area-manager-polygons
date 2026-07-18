@@ -2,12 +2,14 @@
 // (using a real Venue was discarded, see requirements section 3.1). Dragging
 // only applies once a shape is in edit mode; see PolygonLayer (polygon-layer.js).
 
+import { safeAddLayer, safeAddFeature, safeRemoveFeature } from './sdk-safe.js';
+
 const LAYER_NAME = 'wme-area-manager-rectangle';
 
 export class RectangleLayer {
   constructor(sdk) {
     this.sdk = sdk;
-    this.sdk.Map.addLayer({
+    safeAddLayer(sdk, {
       layerName: LAYER_NAME,
       styleRules: [
         { style: { fill: false, strokeColor: '#FF00FF', strokeWidth: 3 } },
@@ -36,14 +38,14 @@ export class RectangleLayer {
       })),
     ];
     for (const feature of features) {
-      this.sdk.Map.addFeatureToLayer({ layerName: LAYER_NAME, feature });
+      safeAddFeature(this.sdk, LAYER_NAME, feature);
       this.featureIds.push(feature.id);
     }
   }
 
   clear() {
     for (const featureId of this.featureIds) {
-      this.sdk.Map.removeFeatureFromLayer({ layerName: LAYER_NAME, featureId });
+      safeRemoveFeature(this.sdk, LAYER_NAME, featureId);
     }
     this.featureIds = [];
   }

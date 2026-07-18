@@ -2,6 +2,7 @@ import { RectangleLayer } from './map-layer.js';
 import { PolygonLayer } from './polygon-layer.js';
 import { SavedShapeLayer } from './saved-shape-layer.js';
 import { initSidebar } from './sidebar.js';
+import { loadDeleteShortcutKey } from './storage.js';
 
 function initScript() {
   const sdk = unsafeWindow.getWmeSdk({
@@ -11,7 +12,7 @@ function initScript() {
 
   sdk.Events.once({ eventName: 'wme-ready' }).then(() => {
     const layer = new RectangleLayer(sdk);
-    const polygonLayer = new PolygonLayer(sdk);
+    const polygonLayer = new PolygonLayer(sdk, loadDeleteShortcutKey());
     const savedShapeLayer = new SavedShapeLayer(sdk);
     initSidebar({ sdk, layer, polygonLayer, savedShapeLayer });
   });

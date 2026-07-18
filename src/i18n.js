@@ -34,6 +34,12 @@ const DICTIONARIES = {
       `Área: ${areaKm2} km² — supera el límite del nivel ${level} (máx. ${maxAreaKm2} km²)`,
     drawingCancelled: 'Dibujo cancelado.',
     placementFailed: (message) => `No se pudo colocar la figura: ${message}. Prueba a acercar el zoom.`,
+    polygonEditHelp: (key) =>
+      `Edición del polígono: clic en el borde añade un punto · clic en el interior arrastra la figura · ` +
+      `clic en un vértice lo arrastra · pasar el ratón por un vértice y pulsar "${key}" lo borra.`,
+    deleteShortcutLabel: 'Tecla para borrar vértice:',
+    deleteShortcutSaved: (key) => `Atajo de borrado actualizado a "${key}".`,
+    invalidShortcutKey: 'Introduce una única tecla.',
   },
   en: {
     tabLabel: 'Area Manager',
@@ -65,6 +71,12 @@ const DICTIONARIES = {
       `Area: ${areaKm2} km² — exceeds the level ${level} limit (max ${maxAreaKm2} km²)`,
     drawingCancelled: 'Drawing cancelled.',
     placementFailed: (message) => `Could not place the shape: ${message}. Try zooming in.`,
+    polygonEditHelp: (key) =>
+      `Polygon editing: click the edge to add a point · click the interior to drag the shape · ` +
+      `click a vertex to drag it · hover a vertex and press "${key}" to delete it.`,
+    deleteShortcutLabel: 'Delete-vertex key:',
+    deleteShortcutSaved: (key) => `Delete shortcut updated to "${key}".`,
+    invalidShortcutKey: 'Enter a single key.',
   },
 };
 

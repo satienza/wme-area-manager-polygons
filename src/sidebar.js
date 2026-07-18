@@ -15,7 +15,14 @@ import {
   toWKT,
 } from './geometry.js';
 import { buildEditorLink } from './link.js';
-import { deleteRectangle, loadRectangles, renameRectangle, saveRectangle } from './storage.js';
+import {
+  deleteRectangle,
+  loadDeleteShortcutKey,
+  loadRectangles,
+  renameRectangle,
+  saveDeleteShortcutKey,
+  saveRectangle,
+} from './storage.js';
 import { t } from './i18n.js';
 
 const ASPECT_RATIOS = [
@@ -29,8 +36,19 @@ const SHAPES = [
   { label: t('shapePolygon'), value: 'polygon' },
 ];
 
-// TODO (Phase 5): derive from window.location instead of always 'row'.
-const DEFAULT_ENV = 'row';
+// The SDK's own data model is more reliable than parsing window.location
+// (whose URL scheme isn't guaranteed): Country.regionCode already uses the
+// same 'usa' | 'row' | 'il' values as the link's `env` parameter. Falls back
+// to 'row' per requisitos_wme_area_manager.md, section 5.
+function detectEnv(sdk) {
+  try {
+    const country = sdk.DataModel.Countries.getTopCountry();
+    if (country?.regionCode) return country.regionCode;
+  } catch (error) {
+    console.warn('WME Area Manager: no se pudo detectar el entorno (env); se usa "row" por defecto.', error);
+  }
+  return 'row';
+}
 
 function formatTimestamp(date) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -41,6 +59,8 @@ function formatTimestamp(date) {
 }
 
 export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
+  const DEFAULT_ENV = detectEnv(sdk);
+
   sdk.Sidebar.registerScriptTab().then(({ tabLabel, tabPane }) => {
     tabLabel.innerText = t('tabLabel');
 
@@ -61,6 +81,38 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       aspectSelect.appendChild(option);
     }
     tabPane.appendChild(aspectSelect);
+
+    const polygonHelpDiv = document.createElement('div');
+    tabPane.appendChild(polygonHelpDiv);
+
+    const shortcutLabel = document.createElement('label');
+    shortcutLabel.innerText = t('deleteShortcutLabel');
+    tabPane.appendChild(shortcutLabel);
+
+    const shortcutInput = document.createElement('input');
+    shortcutInput.type = 'text';
+    shortcutInput.maxLength = 1;
+    shortcutInput.style.width = '2em';
+    shortcutInput.value = loadDeleteShortcutKey();
+    shortcutLabel.appendChild(shortcutInput);
+    tabPane.appendChild(document.createElement('br'));
+
+    function refreshPolygonHelp() {
+      polygonHelpDiv.innerText = t('polygonEditHelp', shortcutInput.value);
+    }
+
+    shortcutInput.addEventListener('change', () => {
+      const key = shortcutInput.value.trim();
+      if (key.length !== 1) {
+        statusDiv.innerText = t('invalidShortcutKey');
+        shortcutInput.value = loadDeleteShortcutKey();
+        return;
+      }
+      saveDeleteShortcutKey(key);
+      polygonLayer.setDeleteShortcutKey(key);
+      statusDiv.innerText = t('deleteShortcutSaved', key);
+      refreshPolygonHelp();
+    });
 
     const placeButton = document.createElement('button');
     tabPane.appendChild(placeButton);
@@ -228,9 +280,12 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     function updateShapeUI() {
       const isRectangle = shapeSelect.value === 'rectangle';
       aspectSelect.style.display = isRectangle ? '' : 'none';
+      polygonHelpDiv.style.display = isRectangle ? 'none' : '';
+      shortcutLabel.style.display = isRectangle ? 'none' : '';
       placeButton.innerText = isRectangle ? t('placeRectangle') : t('placePolygon');
     }
     shapeSelect.addEventListener('change', updateShapeUI);
+    refreshPolygonHelp();
     updateShapeUI();
 
     function updatePolygonStatus(polygon, { error } = {}) {
@@ -296,5 +351,7 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
         statusDiv.innerText = t('placementFailed', error.message);
       }
     });
+  }).catch((error) => {
+    console.error('WME Area Manager: no se pudo registrar la pestaña del panel.', error);
   });
 }
