@@ -91,7 +91,7 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 
 **Criterio de salida**: todos los textos visibles del panel se sirven a través de `t()` desde un diccionario centralizado en `src/i18n.js`, con español como idioma por defecto y sin cambio de comportamiento visible respecto a hoy.
 
-## Fase 9 — Interfaz
+## Fase 9 — Interfaz (hecho)
 
 - Diseño del panel (`src/sidebar.js`): separa los controles en dos bloques visuales con encabezado — "Figura actual" (selector de forma/aspecto, botón de colocar, estado, enlace, nombre, guardar, limpiar, exportación) y "Guardadas" (la lista). Un único `<style>` inyectado en el propio `tabPane` aporta el aspecto (borde, padding, espaciado), sin hoja de estilos externa ni dependencia nueva.
 - Iconos con Font Awesome (`fa fa-save`, `fa fa-edit`, `fa fa-trash`, `fa fa-tag`, `fa fa-link`), sin dependencia nueva: WME ya sirve Font Awesome en la propia página del editor (de ahí que exista un userscript de terceros dedicado solo a corregir iconos de otros scripts cuando WME cambia de versión de FA), así que un `<i class="fa fa-...">` junto al texto ya existente del botón basta — en guardar, y por entrada de la lista en editar, eliminar, renombrar y copiar enlace.

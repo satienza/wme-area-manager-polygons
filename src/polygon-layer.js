@@ -77,8 +77,12 @@ export class PolygonLayer {
           style: { fill: false, strokeColor: '#FF4136', strokeWidth: 3 },
         },
         {
-          predicate: (props) => props.role === 'vertex',
+          predicate: (props) => props.role === 'vertex' && !props.dragging,
           style: { fillColor: '#FF00FF', fillOpacity: 1, pointRadius: 8 },
+        },
+        {
+          predicate: (props) => props.role === 'vertex' && props.dragging,
+          style: { fillColor: '#FFDC00', fillOpacity: 1, pointRadius: 8 },
         },
       ],
     });
@@ -186,7 +190,7 @@ export class PolygonLayer {
         id: `vertex-${i}`,
         type: 'Feature',
         geometry: { type: 'Point', coordinates: coordinate },
-        properties: { role: 'vertex', pointIndex: i },
+        properties: { role: 'vertex', pointIndex: i, dragging: i === this.vertexDragIndex },
       })),
     ];
     for (const feature of features) {
@@ -224,10 +228,12 @@ export class PolygonLayer {
     if (this.vertexDragIndex != null) {
       // drop click landed back on a vertex marker
       this.vertexDragIndex = null;
+      this._redraw();
       this.onChange?.({ type: 'Polygon', coordinates: [buildRing(this.coordinates)] });
       return;
     }
     this.vertexDragIndex = pointIndex; // arm
+    this._redraw();
   }
 
   _onFeatureMouseEnter({ featureId, layerName }) {
@@ -267,6 +273,7 @@ export class PolygonLayer {
     }
     if (this.vertexDragIndex != null) {
       this.vertexDragIndex = null;
+      this._redraw();
       this.onChange?.({ type: 'Polygon', coordinates: [buildRing(this.coordinates)] });
       return;
     }

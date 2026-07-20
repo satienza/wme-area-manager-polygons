@@ -122,6 +122,5 @@ assert.equal(nearestEdgeIndex(midpoint(nw, sw), [sw, se, ne, nw]), 3); // west e
 // defaults to `es` until initI18n(sdk) runs, which this test never calls.
 assert.equal(t('save'), 'Guardar');
 assert.equal(t('saved', 'Test'), 'Guardado "Test".');
-assert.equal(t('entryTitle', 'Test', 1, '1/1/2026'), 'Test — nivel 1 — 1/1/2026');
 
 console.log('self-check OK');

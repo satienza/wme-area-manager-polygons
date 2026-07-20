@@ -45,6 +45,14 @@ function detectEnv(sdk) {
   return 'row';
 }
 
+// WME already serves Font Awesome on the editor page itself, so a plain
+// `<i class="fa fa-...">` is enough — no new dependency. See PLAN.md, Fase 9.
+function buildIcon(name) {
+  const icon = document.createElement('i');
+  icon.className = `fa fa-${name}`;
+  return icon;
+}
+
 function formatTimestamp(date) {
   const pad = (n) => String(n).padStart(2, '0');
   return (
@@ -66,6 +74,36 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
   sdk.Sidebar.registerScriptTab().then(({ tabLabel, tabPane }) => {
     tabLabel.innerText = t('tabLabel');
 
+    // Single injected stylesheet, scoped to this tab's markup only (no
+    // external sheet, no new dependency) — see PLAN.md, Fase 9.
+    const style = document.createElement('style');
+    style.textContent = `
+      .wme-am-section { border: 1px solid #ccc; border-radius: 4px; padding: 8px 10px; margin-bottom: 10px; }
+      .wme-am-section-header { font-weight: bold; margin-bottom: 6px; }
+      .wme-am-section > *:not(:last-child) { margin-bottom: 6px; }
+      .wme-am-entry-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+      .wme-am-entry-table td { border: 1px solid #ccc; padding: 2px 6px; text-align: left; }
+      .wme-am-entry-table tr:first-child td { font-weight: bold; }
+      .wme-am-actions-row { display: flex; gap: 4px; margin-bottom: 4px; }
+    `;
+    tabPane.appendChild(style);
+
+    const currentShapeSection = document.createElement('div');
+    currentShapeSection.className = 'wme-am-section';
+    const currentShapeHeader = document.createElement('div');
+    currentShapeHeader.className = 'wme-am-section-header';
+    currentShapeHeader.innerText = t('sectionCurrentShape');
+    currentShapeSection.appendChild(currentShapeHeader);
+    tabPane.appendChild(currentShapeSection);
+
+    const savedSection = document.createElement('div');
+    savedSection.className = 'wme-am-section';
+    const savedHeader = document.createElement('div');
+    savedHeader.className = 'wme-am-section-header';
+    savedHeader.innerText = t('sectionSaved');
+    savedSection.appendChild(savedHeader);
+    tabPane.appendChild(savedSection);
+
     const shapeSelect = document.createElement('select');
     for (const { label, value } of SHAPES) {
       const option = document.createElement('option');
@@ -73,7 +111,7 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       option.innerText = label;
       shapeSelect.appendChild(option);
     }
-    tabPane.appendChild(shapeSelect);
+    currentShapeSection.appendChild(shapeSelect);
 
     const aspectSelect = document.createElement('select');
     for (const { label, value } of ASPECT_RATIOS) {
@@ -82,14 +120,14 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       option.innerText = label;
       aspectSelect.appendChild(option);
     }
-    tabPane.appendChild(aspectSelect);
+    currentShapeSection.appendChild(aspectSelect);
 
     const polygonHelpDiv = document.createElement('div');
-    tabPane.appendChild(polygonHelpDiv);
+    currentShapeSection.appendChild(polygonHelpDiv);
 
     const shortcutLabel = document.createElement('label');
     shortcutLabel.innerText = t('deleteShortcutLabel');
-    tabPane.appendChild(shortcutLabel);
+    currentShapeSection.appendChild(shortcutLabel);
 
     const shortcutInput = document.createElement('input');
     shortcutInput.type = 'text';
@@ -97,7 +135,6 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     shortcutInput.style.width = '2em';
     shortcutInput.value = loadDeleteShortcutKey();
     shortcutLabel.appendChild(shortcutInput);
-    tabPane.appendChild(document.createElement('br'));
 
     function refreshPolygonHelp() {
       polygonHelpDiv.innerText = t('polygonEditHelp', shortcutInput.value);
@@ -117,39 +154,40 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     });
 
     const placeButton = document.createElement('button');
-    tabPane.appendChild(placeButton);
+    currentShapeSection.appendChild(placeButton);
 
     const statusDiv = document.createElement('div');
-    tabPane.appendChild(statusDiv);
+    currentShapeSection.appendChild(statusDiv);
 
     const linkInput = document.createElement('input');
     linkInput.type = 'text';
     linkInput.readOnly = true;
     linkInput.style.width = '100%';
-    tabPane.appendChild(linkInput);
+    currentShapeSection.appendChild(linkInput);
 
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.placeholder = t('namePlaceholder');
     nameInput.style.width = '100%';
-    tabPane.appendChild(nameInput);
+    currentShapeSection.appendChild(nameInput);
 
     const saveButton = document.createElement('button');
-    saveButton.innerText = t('save');
-    tabPane.appendChild(saveButton);
+    saveButton.appendChild(buildIcon('save'));
+    saveButton.appendChild(document.createTextNode(' ' + t('save')));
+    currentShapeSection.appendChild(saveButton);
 
     const clearButton = document.createElement('button');
     clearButton.innerText = t('clearDrawing');
-    tabPane.appendChild(clearButton);
+    currentShapeSection.appendChild(clearButton);
 
     const exportOutput = document.createElement('textarea');
     exportOutput.readOnly = true;
     exportOutput.rows = 3;
     exportOutput.style.width = '100%';
-    tabPane.appendChild(exportOutput);
+    currentShapeSection.appendChild(exportOutput);
 
     const listContainer = document.createElement('div');
-    tabPane.appendChild(listContainer);
+    savedSection.appendChild(listContainer);
 
     // The shape currently offered to "Guardar": carries `id` only while
     // editing an existing saved entry, so saving overwrites it (upsert by id)
@@ -206,62 +244,67 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       row.style.borderTop = '1px solid #ccc';
       row.style.padding = '4px 0';
 
-      const title = document.createElement('div');
-      title.innerText = t('entryTitle', entry.nombre, entry.nivel, new Date(entry.fechaCreacion).toLocaleString());
-      row.appendChild(title);
+      const table = document.createElement('table');
+      table.className = 'wme-am-entry-table';
 
-      const actions = document.createElement('div');
-      row.appendChild(actions);
+      const nameRow = document.createElement('tr');
+      const nameCell = document.createElement('td');
+      nameCell.colSpan = 3;
+      nameCell.innerText = entry.nombre;
+      nameRow.appendChild(nameCell);
+      table.appendChild(nameRow);
 
-      function addAction(label, onClick) {
+      const detailRow = document.createElement('tr');
+      const fecha = new Date(entry.fechaCreacion);
+      for (const text of [`N${entry.nivel}`, fecha.toLocaleDateString('es-ES'), fecha.toLocaleTimeString('es-ES')]) {
+        const cell = document.createElement('td');
+        cell.innerText = text;
+        detailRow.appendChild(cell);
+      }
+      table.appendChild(detailRow);
+
+      row.appendChild(table);
+
+      const actionsRow1 = document.createElement('div');
+      actionsRow1.className = 'wme-am-actions-row';
+      row.appendChild(actionsRow1);
+
+      const actionsRow2 = document.createElement('div');
+      actionsRow2.className = 'wme-am-actions-row';
+      row.appendChild(actionsRow2);
+
+      function addAction(container, label, onClick, iconName) {
         const button = document.createElement('button');
-        button.innerText = label;
+        if (iconName) button.appendChild(buildIcon(iconName));
+        button.appendChild(document.createTextNode(iconName ? ' ' + label : label));
         button.addEventListener('click', onClick);
-        actions.appendChild(button);
+        container.appendChild(button);
       }
 
-      addAction(t('load'), () => {
+      // Row 1: Load, Edit, Rename, Delete. Row 2: Link, GeoJson, WKT.
+      addAction(actionsRow1, t('load'), () => {
         savedShapeLayer.draw(entry.geometry);
         sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
         activeLayer = savedShapeLayer;
         shownEntryId = entry.id;
       });
 
-      addAction(t('edit'), () => {
+      addAction(actionsRow1, t('edit'), () => {
         currentEntry = { ...entry, env: DEFAULT_ENV };
         nameInput.value = entry.nombre;
         polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus });
         updatePolygonStatus(entry.geometry);
         activeLayer = polygonLayer;
-      });
+      }, 'edit');
 
-      addAction(t('exportGeoJSON'), () => {
-        exportOutput.value = JSON.stringify(toGeoJSONFeature(entry));
-      });
-
-      addAction(t('exportWKT'), () => {
-        exportOutput.value = toWKT(entry.geometry);
-      });
-
-      addAction(t('copyLink'), () => {
-        const enlace = buildEditorLink({ lat: entry.lat, lon: entry.lon, zoom: entry.zoom, env: entry.env });
-        navigator.clipboard.writeText(enlace).then(
-          () => { statusDiv.innerText = t('linkCopied'); },
-          () => {
-            linkInput.value = enlace;
-            statusDiv.innerText = t('linkCopyFailed');
-          },
-        );
-      });
-
-      addAction(t('rename'), () => {
+      addAction(actionsRow1, t('rename'), () => {
         const nombre = prompt(t('renamePrompt'), entry.nombre);
         if (!nombre) return;
         renameRectangle(entry.id, nombre);
         renderList();
-      });
+      }, 'tag');
 
-      addAction(t('delete'), () => {
+      addAction(actionsRow1, t('delete'), () => {
         deleteRectangle(entry.id);
         if (currentEntry?.id === entry.id) {
           polygonLayer.clear();
@@ -272,6 +315,25 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
           shownEntryId = null;
         }
         renderList();
+      }, 'trash');
+
+      addAction(actionsRow2, t('copyLink'), () => {
+        const enlace = buildEditorLink({ lat: entry.lat, lon: entry.lon, zoom: entry.zoom, env: entry.env });
+        navigator.clipboard.writeText(enlace).then(
+          () => { statusDiv.innerText = t('linkCopied'); },
+          () => {
+            linkInput.value = enlace;
+            statusDiv.innerText = t('linkCopyFailed');
+          },
+        );
+      }, 'link');
+
+      addAction(actionsRow2, t('exportGeoJSON'), () => {
+        exportOutput.value = JSON.stringify(toGeoJSONFeature(entry));
+      });
+
+      addAction(actionsRow2, t('exportWKT'), () => {
+        exportOutput.value = toWKT(entry.geometry);
       });
 
       return row;
