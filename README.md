@@ -5,6 +5,7 @@ Tampermonkey userscript for the Waze Map Editor (WME). Draws a rectangle centere
 - Requirements and feasibility analysis: [`requisitos_wme_area_manager.md`](./requisitos_wme_area_manager.md)
 - Phased development plan: [`PLAN.md`](./PLAN.md)
 - Greasyfork listing text: [`GREASYFORK.md`](./GREASYFORK.md)
+- Release history: [`CHANGELOG.md`](./CHANGELOG.md)
 
 ## Status
 

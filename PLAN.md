@@ -100,7 +100,7 @@ Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requis
 
 **Criterio de salida**: el panel muestra visualmente separadas la figura en edición y la lista de guardados, con iconos en guardar/editar/eliminar/ renombrar/copiar enlace y el nivel abreviado ("N4"); al armar el arrastre de un vértice, éste cambia de color hasta soltarlo.
 
-## Fase 10 — Empaquetado
+## Fase 10 — Empaquetado (hecho)
 
 - Build final del `.user.js` con cabecera de metadatos completa (`@match`, `@grant`, `@version`, `@updateURL`/`@downloadURL` si se aloja para autoupdate).
 - `dist/wme-area-manager.user.js` deja de estar en `.gitignore` y queda versionado en el repo: es el archivo que sirve la URL raw para Greasyfork y para el autoupdate de Tampermonkey.

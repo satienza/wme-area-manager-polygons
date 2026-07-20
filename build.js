@@ -1,7 +1,9 @@
 import * as esbuild from 'esbuild';
 import { readFileSync } from 'node:fs';
 
-const header = readFileSync(new URL('./src/header.js', import.meta.url), 'utf8');
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+const header = readFileSync(new URL('./src/header.js', import.meta.url), 'utf8')
+  .replace('__VERSION__', pkg.version);
 const watch = process.argv.includes('--watch');
 
 const options = {
