@@ -3,4 +3,9 @@
 ## Idioma
 
 - Comentarios en el código y el README: **en inglés**.
-- Plan (`PLAN.md`) y requisitos (`requisitos_wme_area_manager.md`): **en español**.
+- Plan (`PLAN.md`, archivado) y requisitos (`requisitos_wme_area_manager.md`): **en español**.
+
+## Flujo de trabajo
+
+- `PLAN.md` está cerrado/archivado: constancia histórica de las fases 0-11, no se edita para añadir trabajo nuevo.
+- El trabajo nuevo (features, bugs) se gestiona con issues y pull requests en Forgejo (`forgejo.petricor.net/satienza/wme-area-manager`).

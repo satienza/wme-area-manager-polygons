@@ -2,6 +2,8 @@
 
 Requisitos y viabilidad completos en [`requisitos_wme_area_manager.md`](./requisitos_wme_area_manager.md). Este plan los desglosa en fases ejecutables.
 
+> **Plan cerrado.** Las fases 0-11 están completas; este documento se conserva como constancia histórica de cómo se llegó al estado actual y ya no se amplía con fases nuevas. El desarrollo a partir de aquí se gestiona con issues y pull requests en Forgejo ([`forgejo.petricor.net/satienza/wme-area-manager`](https://forgejo.petricor.net/satienza/wme-area-manager)). Para el histórico de versiones publicadas, ver [`CHANGELOG.md`](./CHANGELOG.md).
+
 ## Fase 0 — Andamiaje (hecho)
 
 - Estructura de carpetas, `package.json`, build con esbuild, cabecera de metadatos del userscript, README.
