@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         WME Area Manager
-// @namespace    https://forgejo.petricor.net/satienza/wme-area-manager
+// @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
 // @version      0.10.0
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
