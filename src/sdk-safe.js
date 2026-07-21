@@ -1,7 +1,7 @@
-// Thin try/catch wrappers around the WME SDK Map calls the three custom
-// layers (map-layer.js, polygon-layer.js, saved-shape-layer.js) use. WME can
-// tear down a script's layer on some view changes, so a stale layer/feature
-// reference must log and move on instead of breaking the whole panel.
+// Thin try/catch wrappers around the WME SDK Map calls the custom layers
+// (polygon-layer.js, saved-shape-layer.js) use. WME can tear down a script's
+// layer on some view changes, so a stale layer/feature reference must log
+// and move on instead of breaking the whole panel.
 // See PLAN.md, Fase 8 ("manejo de errores ... capas inexistentes").
 
 export function safeAddLayer(sdk, options) {

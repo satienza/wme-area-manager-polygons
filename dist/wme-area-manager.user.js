@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.10.0
+// @version      0.11.0
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -15,73 +15,6 @@
 // ==/UserScript==
 
 (() => {
-  // src/sdk-safe.js
-  function safeAddLayer(sdk, options) {
-    try {
-      sdk.Map.addLayer(options);
-    } catch (error) {
-      console.warn(`WME Area Manager: no se pudo crear la capa "${options.layerName}".`, error);
-    }
-  }
-  function safeAddFeature(sdk, layerName, feature2) {
-    try {
-      sdk.Map.addFeatureToLayer({ layerName, feature: feature2 });
-    } catch (error) {
-      console.warn(`WME Area Manager: no se pudo a\xF1adir "${feature2.id}" a la capa "${layerName}".`, error);
-    }
-  }
-  function safeRemoveFeature(sdk, layerName, featureId) {
-    try {
-      sdk.Map.removeFeatureFromLayer({ layerName, featureId });
-    } catch {
-    }
-  }
-
-  // src/map-layer.js
-  var LAYER_NAME = "wme-area-manager-rectangle";
-  var RectangleLayer = class {
-    constructor(sdk) {
-      this.sdk = sdk;
-      safeAddLayer(sdk, {
-        layerName: LAYER_NAME,
-        styleRules: [
-          { style: { fill: false, strokeColor: "#FF00FF", strokeWidth: 3 } },
-          {
-            predicate: (props) => props.role === "diagonal",
-            style: { strokeColor: "#FF00FF", strokeWidth: 1, strokeDashstyle: "dash" }
-          }
-        ]
-      });
-      this.featureIds = [];
-    }
-    /**
-     * @param {GeoJSON.Polygon} polygon
-     * @param {GeoJSON.LineString[]} diagonals
-     */
-    draw(polygon, diagonals) {
-      this.clear();
-      const features = [
-        { id: "outline", type: "Feature", geometry: polygon, properties: { role: "outline" } },
-        ...diagonals.map((line, i) => ({
-          id: `diagonal-${i}`,
-          type: "Feature",
-          geometry: line,
-          properties: { role: "diagonal" }
-        }))
-      ];
-      for (const feature2 of features) {
-        safeAddFeature(this.sdk, LAYER_NAME, feature2);
-        this.featureIds.push(feature2.id);
-      }
-    }
-    clear() {
-      for (const featureId of this.featureIds) {
-        safeRemoveFeature(this.sdk, LAYER_NAME, featureId);
-      }
-      this.featureIds = [];
-    }
-  };
-
   // node_modules/@turf/helpers/dist/esm/index.js
   var earthRadius = 63710088e-1;
   var factors = {
@@ -400,13 +333,6 @@
     const lat = coordinates.reduce((sum, [, y]) => sum + y, 0) / coordinates.length;
     return { lon, lat };
   }
-  function buildDiagonals(polygon) {
-    const [sw, se, ne, nw] = polygon.coordinates[0];
-    return [
-      { type: "LineString", coordinates: [sw, ne] },
-      { type: "LineString", coordinates: [se, nw] }
-    ];
-  }
   function nearestEdgeIndex([x, y], coordinates) {
     let bestIndex = 0;
     let bestDistSq = Infinity;
@@ -443,8 +369,30 @@
     return `POLYGON(${rings})`;
   }
 
+  // src/sdk-safe.js
+  function safeAddLayer(sdk, options) {
+    try {
+      sdk.Map.addLayer(options);
+    } catch (error) {
+      console.warn(`WME Area Manager: no se pudo crear la capa "${options.layerName}".`, error);
+    }
+  }
+  function safeAddFeature(sdk, layerName, feature2) {
+    try {
+      sdk.Map.addFeatureToLayer({ layerName, feature: feature2 });
+    } catch (error) {
+      console.warn(`WME Area Manager: no se pudo a\xF1adir "${feature2.id}" a la capa "${layerName}".`, error);
+    }
+  }
+  function safeRemoveFeature(sdk, layerName, featureId) {
+    try {
+      sdk.Map.removeFeatureFromLayer({ layerName, featureId });
+    } catch {
+    }
+  }
+
   // src/polygon-layer.js
-  var LAYER_NAME2 = "wme-area-manager-polygon";
+  var LAYER_NAME = "wme-area-manager-polygon";
   var MIN_POINTS = 3;
   var SHORTCUT_ID = "wme-area-manager-delete-vertex";
   var DEFAULT_DELETE_SHORTCUT_KEY = "k";
@@ -459,7 +407,7 @@
     constructor(sdk, deleteShortcutKey = DEFAULT_DELETE_SHORTCUT_KEY) {
       this.sdk = sdk;
       safeAddLayer(sdk, {
-        layerName: LAYER_NAME2,
+        layerName: LAYER_NAME,
         styleRules: [
           {
             predicate: (props) => props.role === "fill" && props.valid,
@@ -487,7 +435,7 @@
           }
         ]
       });
-      this.sdk.Events.trackLayerEvents({ layerName: LAYER_NAME2 });
+      this.sdk.Events.trackLayerEvents({ layerName: LAYER_NAME });
       this.sdk.Events.on({ eventName: "wme-layer-feature-clicked", eventHandler: this._onFeatureClicked.bind(this) });
       this.sdk.Events.on({ eventName: "wme-layer-feature-mouse-enter", eventHandler: this._onFeatureMouseEnter.bind(this) });
       this.sdk.Events.on({ eventName: "wme-layer-feature-mouse-leave", eventHandler: this._onFeatureMouseLeave.bind(this) });
@@ -498,6 +446,7 @@
       this.featureIds = [];
       this.coordinates = [];
       this.onChange = null;
+      this.editable = true;
       this.drag = null;
       this.vertexDragIndex = null;
       this.hoveredVertexIndex = null;
@@ -506,11 +455,19 @@
     }
     /**
      * @param {GeoJSON.Polygon} polygon - as returned by sdk.Map.drawPolygon().
-     * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void }} handlers
+     * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void, editable?: boolean }} handlers
+     *   `editable: false` locks the shape to whole-figure translation only —
+     *   no vertex markers, no add-on-outline-click, no delete shortcut. Used
+     *   for rectangles, which must stay rigid (fixed by the editor level);
+     *   free-form polygons keep the default `true`.
      */
-    draw(polygon, { onChange }) {
+    draw(polygon, { onChange, editable = true }) {
       this.coordinates = polygon.coordinates[0].slice(0, -1);
       this.onChange = onChange;
+      this.editable = editable;
+      this.drag = null;
+      this.vertexDragIndex = null;
+      this.hoveredVertexIndex = null;
       this._redraw();
     }
     // Registers the delete-vertex shortcut under the current `shortcutKey`.
@@ -540,8 +497,8 @@
     }
     setValid(valid) {
       for (const role of ["fill", "outline"]) {
-        safeRemoveFeature(this.sdk, LAYER_NAME2, role);
-        safeAddFeature(this.sdk, LAYER_NAME2, {
+        safeRemoveFeature(this.sdk, LAYER_NAME, role);
+        safeAddFeature(this.sdk, LAYER_NAME, {
           id: role,
           type: "Feature",
           geometry: { type: "Polygon", coordinates: [buildRing(this.coordinates)] },
@@ -551,7 +508,7 @@
     }
     clear() {
       for (const featureId of this.featureIds) {
-        safeRemoveFeature(this.sdk, LAYER_NAME2, featureId);
+        safeRemoveFeature(this.sdk, LAYER_NAME, featureId);
       }
       this.featureIds = [];
     }
@@ -570,20 +527,20 @@
           geometry: { type: "Polygon", coordinates: [buildRing(this.coordinates)] },
           properties: { role: "outline", valid: true }
         },
-        ...this.coordinates.map((coordinate, i) => ({
+        ...this.editable ? this.coordinates.map((coordinate, i) => ({
           id: `vertex-${i}`,
           type: "Feature",
           geometry: { type: "Point", coordinates: coordinate },
           properties: { role: "vertex", pointIndex: i, dragging: i === this.vertexDragIndex }
-        }))
+        })) : []
       ];
       for (const feature2 of features) {
-        safeAddFeature(this.sdk, LAYER_NAME2, feature2);
+        safeAddFeature(this.sdk, LAYER_NAME, feature2);
         this.featureIds.push(feature2.id);
       }
     }
     _onFeatureClicked({ featureId, layerName }) {
-      if (layerName !== LAYER_NAME2) return;
+      if (layerName !== LAYER_NAME) return;
       if (this.drag) return;
       if (featureId === "fill") {
         if (this.vertexDragIndex != null || !this._lastMouse) return;
@@ -593,6 +550,7 @@
         return;
       }
       if (featureId === "outline") {
+        if (!this.editable) return;
         if (this.vertexDragIndex != null || !this._lastMouse) return;
         const { lon, lat } = this._lastMouse;
         const i = nearestEdgeIndex([lon, lat], this.coordinates);
@@ -615,15 +573,16 @@
       this._redraw();
     }
     _onFeatureMouseEnter({ featureId, layerName }) {
-      if (layerName !== LAYER_NAME2 || !featureId.startsWith("vertex-")) return;
+      if (layerName !== LAYER_NAME || !featureId.startsWith("vertex-")) return;
       this.hoveredVertexIndex = Number(featureId.slice("vertex-".length));
     }
     _onFeatureMouseLeave({ featureId, layerName }) {
-      if (layerName !== LAYER_NAME2 || !featureId.startsWith("vertex-")) return;
+      if (layerName !== LAYER_NAME || !featureId.startsWith("vertex-")) return;
       this.hoveredVertexIndex = null;
     }
     // Mirrors WME's own geometry editor: hover a vertex, press the configured key to delete it.
     _onDeleteShortcut() {
+      if (!this.editable) return;
       if (this.hoveredVertexIndex == null) return;
       if (this.coordinates.length <= MIN_POINTS) {
         this.onChange?.(null, { error: `Un pol\xEDgono necesita al menos ${MIN_POINTS} puntos.` });
@@ -674,12 +633,12 @@
   };
 
   // src/saved-shape-layer.js
-  var LAYER_NAME3 = "wme-area-manager-saved-shape";
+  var LAYER_NAME2 = "wme-area-manager-saved-shape";
   var SavedShapeLayer = class {
     constructor(sdk) {
       this.sdk = sdk;
       safeAddLayer(sdk, {
-        layerName: LAYER_NAME3,
+        layerName: LAYER_NAME2,
         styleRules: [{ style: { fill: false, strokeColor: "#0074D9", strokeWidth: 3 } }]
       });
       this.featureIds = [];
@@ -688,12 +647,12 @@
     draw(geometry) {
       this.clear();
       const feature2 = { id: "outline", type: "Feature", geometry, properties: {} };
-      safeAddFeature(this.sdk, LAYER_NAME3, feature2);
+      safeAddFeature(this.sdk, LAYER_NAME2, feature2);
       this.featureIds.push(feature2.id);
     }
     clear() {
       for (const featureId of this.featureIds) {
-        safeRemoveFeature(this.sdk, LAYER_NAME3, featureId);
+        safeRemoveFeature(this.sdk, LAYER_NAME2, featureId);
       }
       this.featureIds = [];
     }
@@ -866,6 +825,9 @@
     return typeof entry === "function" ? entry(...args) : entry;
   }
 
+  // package.json
+  var version = "0.11.0";
+
   // src/sidebar.js
   var ASPECT_RATIOS = [
     { label: "1:1", value: 1 },
@@ -890,7 +852,7 @@
     const pad = (n) => String(n).padStart(2, "0");
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
   }
-  function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
+  function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
     const DEFAULT_ENV = detectEnv(sdk);
     const SHAPES = [
       { label: t("shapeRectangle"), value: "rectangle" },
@@ -923,6 +885,12 @@
       savedHeader.innerText = t("sectionSaved");
       savedSection.appendChild(savedHeader);
       tabPane.appendChild(savedSection);
+      const versionFooter = document.createElement("div");
+      versionFooter.style.textAlign = "center";
+      versionFooter.style.color = "#888";
+      versionFooter.style.fontSize = "0.85em";
+      versionFooter.innerText = `v${version}`;
+      tabPane.appendChild(versionFooter);
       const shapeSelect = document.createElement("select");
       for (const { label, value } of SHAPES) {
         const option = document.createElement("option");
@@ -1074,7 +1042,7 @@
         addAction(actionsRow1, t("edit"), () => {
           currentEntry = { ...entry, env: DEFAULT_ENV };
           nameInput.value = entry.nombre;
-          polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus });
+          polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus, editable: entry.tipo !== "rectangle" });
           updatePolygonStatus(entry.geometry);
           activeLayer = polygonLayer;
         }, "edit");
@@ -1146,15 +1114,15 @@
       async function placeRectangle() {
         const userInfo = sdk.State.getUserInfo();
         if (!userInfo) return;
-        const { level, zoom, areaKm2 } = getConfigForRank(userInfo.rank);
+        const { areaKm2 } = getConfigForRank(userInfo.rank);
         const { coordinates: [lon, lat] } = await sdk.Map.drawPoint();
         const { polygon, bbox } = buildRectangleFromCenter({ lon, lat }, areaKm2, Number(aspectSelect.value));
         currentEntry = null;
-        layer.draw(polygon, buildDiagonals(polygon));
-        activeLayer = layer;
+        updateCurrentEntry({ tipo: "rectangle" });
+        polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: false });
+        activeLayer = polygonLayer;
         sdk.Map.zoomToExtent({ bbox });
-        linkInput.value = buildEditorLink({ lat, lon, zoom });
-        updateCurrentEntry({ geometry: polygon, lat, lon, nivel: level, zoom, area_km2: polygonAreaKm2(polygon) });
+        updatePolygonStatus(polygon);
         autofillName();
       }
       async function placePolygon() {
@@ -1164,7 +1132,8 @@
           return;
         }
         currentEntry = null;
-        polygonLayer.draw(polygon, { onChange: updatePolygonStatus });
+        updateCurrentEntry({ tipo: "polygon" });
+        polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true });
         activeLayer = polygonLayer;
         updatePolygonStatus(polygon);
         autofillName();
@@ -1194,10 +1163,9 @@
     });
     initI18n(sdk);
     sdk.Events.once({ eventName: "wme-ready" }).then(() => {
-      const layer = new RectangleLayer(sdk);
       const polygonLayer = new PolygonLayer(sdk, loadDeleteShortcutKey());
       const savedShapeLayer = new SavedShapeLayer(sdk);
-      initSidebar({ sdk, layer, polygonLayer, savedShapeLayer });
+      initSidebar({ sdk, polygonLayer, savedShapeLayer });
     });
   }
   if (document.readyState === "loading") {

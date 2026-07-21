@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.11.0 — Restricted vertex editing by shape type
+
+- Rectangles are now rigid in edit mode: only whole-figure translation is allowed, no adding, moving individually, or deleting vertices — that stays exclusive to free-form polygons. Fixes [#2](https://forgejo.petricor.net/satienza/wme-area-manager/issues/2).
+- `PolygonLayer.draw()` gains an `editable` flag; saved entries now persist `tipo: 'rectangle' | 'polygon'` (`src/storage.js`) so "Editar" applies the right behavior. Entries saved before this field existed default to editable, unchanged from before.
+- Placing a new rectangle now goes straight into the same visual edit mode as a polygon (green/red fill by area validity) instead of a separate read-only preview layer with a magenta outline and center diagonals — no more save-then-reopen just to move it.
+- Removed the now-unused `RectangleLayer` (`src/map-layer.js`) and `buildDiagonals` (`src/geometry.js`).
+- The panel footer now shows the running script version (`v{package.json version}`), to avoid mistaking a stale cached copy in the browser for a bug.
+
 ## 0.10.0 — Packaging
 
 - `package.json` is now the single source of truth for the version; `build.js` injects it into `src/header.js` at compile time instead of it being hand-edited.

@@ -7,7 +7,6 @@
 import { getConfigForRank } from './config.js';
 import {
   buildRectangleFromCenter,
-  buildDiagonals,
   geometryBbox,
   polygonAreaKm2,
   polygonCenter,
@@ -24,6 +23,7 @@ import {
   saveRectangle,
 } from './storage.js';
 import { t } from './i18n.js';
+import { version } from '../package.json';
 
 const ASPECT_RATIOS = [
   { label: '1:1', value: 1 },
@@ -61,7 +61,7 @@ function formatTimestamp(date) {
   );
 }
 
-export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
+export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
   const DEFAULT_ENV = detectEnv(sdk);
 
   // Built here (not at module scope) so its t() calls read the language
@@ -103,6 +103,13 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     savedHeader.innerText = t('sectionSaved');
     savedSection.appendChild(savedHeader);
     tabPane.appendChild(savedSection);
+
+    const versionFooter = document.createElement('div');
+    versionFooter.style.textAlign = 'center';
+    versionFooter.style.color = '#888';
+    versionFooter.style.fontSize = '0.85em';
+    versionFooter.innerText = `v${version}`;
+    tabPane.appendChild(versionFooter);
 
     const shapeSelect = document.createElement('select');
     for (const { label, value } of SHAPES) {
@@ -292,7 +299,9 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
       addAction(actionsRow1, t('edit'), () => {
         currentEntry = { ...entry, env: DEFAULT_ENV };
         nameInput.value = entry.nombre;
-        polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus });
+        // Entries saved before `tipo` existed default to editable, matching
+        // their current (unrestricted) behavior until re-saved.
+        polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus, editable: entry.tipo !== 'rectangle' });
         updatePolygonStatus(entry.geometry);
         activeLayer = polygonLayer;
       }, 'edit');
@@ -375,18 +384,19 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
     async function placeRectangle() {
       const userInfo = sdk.State.getUserInfo();
       if (!userInfo) return;
-      const { level, zoom, areaKm2 } = getConfigForRank(userInfo.rank);
+      const { areaKm2 } = getConfigForRank(userInfo.rank);
 
       const { coordinates: [lon, lat] } = await sdk.Map.drawPoint();
 
       const { polygon, bbox } = buildRectangleFromCenter({ lon, lat }, areaKm2, Number(aspectSelect.value));
       currentEntry = null; // fresh placement, not an edit of a saved entry
-      layer.draw(polygon, buildDiagonals(polygon));
-      activeLayer = layer;
+      updateCurrentEntry({ tipo: 'rectangle' });
+      // Rectangles are rigid (size fixed by the editor level): edit mode
+      // only allows whole-figure translation, no vertex-level edits.
+      polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: false });
+      activeLayer = polygonLayer;
       sdk.Map.zoomToExtent({ bbox });
-
-      linkInput.value = buildEditorLink({ lat, lon, zoom });
-      updateCurrentEntry({ geometry: polygon, lat, lon, nivel: level, zoom, area_km2: polygonAreaKm2(polygon) });
+      updatePolygonStatus(polygon);
       autofillName();
     }
 
@@ -397,7 +407,8 @@ export function initSidebar({ sdk, layer, polygonLayer, savedShapeLayer }) {
         return;
       }
       currentEntry = null; // fresh placement, not an edit of a saved entry
-      polygonLayer.draw(polygon, { onChange: updatePolygonStatus });
+      updateCurrentEntry({ tipo: 'polygon' });
+      polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true });
       activeLayer = polygonLayer;
       updatePolygonStatus(polygon);
       autofillName();

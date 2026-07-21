@@ -1,8 +1,11 @@
 // Persistence of saved rectangles via GM_setValue/GM_getValue.
-// Entry structure: { id, nombre, lat, lon, nivel, zoom, area_km2, env, fechaCreacion, geometry }
+// Entry structure: { id, nombre, tipo, lat, lon, nivel, zoom, area_km2, env, fechaCreacion, geometry }
 // `geometry` is the actual traced GeoJSON.Polygon (rectangle or free
 // polygon), not recalculated from nivel/lat/lon, so it can be reproduced and
-// exported as-is (see geometry.js: toGeoJSONFeature/toWKT).
+// exported as-is (see geometry.js: toGeoJSONFeature/toWKT). `tipo` is
+// 'rectangle' | 'polygon' and drives whether "Editar" allows vertex-level
+// edits (see polygon-layer.js, `editable`) — entries saved before this field
+// existed are `undefined` and default to editable.
 // See requisitos_wme_area_manager.md, section 3.
 
 import { DEFAULT_DELETE_SHORTCUT_KEY } from './polygon-layer.js';
