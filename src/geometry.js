@@ -49,6 +49,29 @@ export function polygonAreaKm2(polygon) {
   return area(polygon) / 1_000_000;
 }
 
+const DEG2RAD = Math.PI / 180;
+
+/**
+ * Whole-shape drag translation that preserves physical width instead of
+ * raw degree offsets. 1° of longitude spans ~111km * cos(latitude) --
+ * shrinking toward the poles, widening toward the equator -- while 1° of
+ * latitude is ~constant everywhere. A naive same-degree shift therefore
+ * changes the shape's real east-west extent (and area) as it crosses
+ * latitudes; only the longitude offset needs rescaling by
+ * cos(anchor.lat)/cos(current.lat) to cancel that out.
+ * @param {GeoJSON.Position[]} coordinates - vertices at drag start.
+ * @param {{lon: number, lat: number}} anchor - mouse position at drag start.
+ * @param {{lon: number, lat: number}} current - mouse position now.
+ * @returns {GeoJSON.Position[]}
+ */
+export function translateRigid(coordinates, anchor, current) {
+  const scale = Math.cos(anchor.lat * DEG2RAD) / Math.cos(current.lat * DEG2RAD);
+  return coordinates.map(([lon, lat]) => [
+    current.lon + (lon - anchor.lon) * scale,
+    current.lat + (lat - anchor.lat),
+  ]);
+}
+
 /**
  * Rough planar center of a ring, for placing the editor link marker.
  * Good enough at the km² scale this script works with; not a geodesic

@@ -11,6 +11,7 @@ import {
   polygonCenter,
   toGeoJSONFeature,
   toWKT,
+  translateRigid,
 } from './geometry.js';
 const { t } = await import('./i18n.js');
 
@@ -61,6 +62,17 @@ assert.ok(polygonAreaKm2(squareKm7_59) <= maxAreaKm2Level1); // within its own l
 const { areaKm2: maxAreaKm2Level3 } = getConfigForRank(2); // level 3, max 30.37 km²... still fits
 assert.ok(polygonAreaKm2(squareKm7_59) <= maxAreaKm2Level3);
 assert.ok(!(121.5 <= maxAreaKm2Level1)); // a much larger area exceeds a level-1 cap
+
+// Bugfix: dragging a shape across latitudes must preserve its physical
+// area -- a naive same-degree-delta translation was inflating/shrinking it
+// depending on drag direction (north/south).
+const draggedCoords = translateRigid(
+  squareKm7_59.coordinates[0].slice(0, -1),
+  { lon: -3.7, lat: 40.4 },
+  { lon: -3.7, lat: 10 },
+);
+const draggedPolygon = { type: 'Polygon', coordinates: [[...draggedCoords, draggedCoords[0]]] };
+assert.ok(Math.abs(polygonAreaKm2(draggedPolygon) - 7.59) < 7.59 * 0.01);
 
 const center = polygonCenter(squareKm7_59.coordinates[0].slice(0, -1));
 assert.ok(Math.abs(center.lon - -3.7) < 0.001);
