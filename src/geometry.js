@@ -63,19 +63,6 @@ export function polygonCenter(coordinates) {
 }
 
 /**
- * Rectangle diagonals, so the user can see where the center falls.
- * @param {GeoJSON.Polygon} polygon - returned by buildRectangleFromCenter.
- * @returns {GeoJSON.LineString[]}
- */
-export function buildDiagonals(polygon) {
-  const [sw, se, ne, nw] = polygon.coordinates[0];
-  return [
-    { type: 'LineString', coordinates: [sw, ne] },
-    { type: 'LineString', coordinates: [se, nw] },
-  ];
-}
-
-/**
  * Nearest edge of a ring to a point (planar distance, no Turf needed). Used
  * to find where a new vertex should be inserted when the user clicks on the
  * polygon's outline.

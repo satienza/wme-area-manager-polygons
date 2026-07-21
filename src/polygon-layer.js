@@ -1,15 +1,21 @@
-// Custom SDK layer to draw and edit a free-form polygon, without touching
-// WME's DataModel (same approach as RectangleLayer, see map-layer.js).
+// Custom SDK layer to draw and edit a shape (rectangle or free-form
+// polygon), without touching WME's DataModel.
+//
+// Draws both rectangles and free-form polygons with the same visual style
+// (fill/outline colored by area validity), but only free-form polygons get
+// vertex-level interaction — `draw(polygon, { editable: false })` locks a
+// rectangle to whole-figure translation, since its shape/size is fixed by
+// the editor level (see the `editable` flag throughout this file).
 //
 // Three separate features per polygon, stacked in this order (see
 // `_redraw()`), so the SDK's own hit-testing — not our own geometry math —
 // decides what a click hit: a low-opacity `'fill'` feature covering the
 // whole interior (drag the shape), a stroke-only `'outline'` feature on top
 // of it (add a vertex — its hit region is a thin band around the line, so
-// it wins near the edge), and `vertex-*` point markers on top of both
-// (drag/drop a single vertex). This mirrors why vertices were already drawn
-// after the outline: an overlapping click resolves to whichever feature is
-// on top.
+// it wins near the edge), and, when editable, `vertex-*` point markers on
+// top of both (drag/drop a single vertex). This mirrors why vertices were
+// already drawn after the outline: an overlapping click resolves to
+// whichever feature is on top.
 //
 // Vertex deletion mirrors WME's own geometry editor: hover the vertex and
 // press the configured key (`wme-layer-feature-mouse-enter/leave` tracks
@@ -97,6 +103,10 @@ export class PolygonLayer {
     this.featureIds = [];
     this.coordinates = [];
     this.onChange = null;
+    // Whether vertex-level interaction (add/move-individual/delete) is
+    // allowed; `false` locks the shape to whole-figure translation only.
+    // Set by `draw()`.
+    this.editable = true;
     // Set from pick-up to drop: the coordinates and mouse position at the
     // moment the drag was armed, so each move applies the *total* delta
     // (no per-frame drift) and dropping is just clearing this.
@@ -117,11 +127,23 @@ export class PolygonLayer {
 
   /**
    * @param {GeoJSON.Polygon} polygon - as returned by sdk.Map.drawPolygon().
-   * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void }} handlers
+   * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void, editable?: boolean }} handlers
+   *   `editable: false` locks the shape to whole-figure translation only —
+   *   no vertex markers, no add-on-outline-click, no delete shortcut. Used
+   *   for rectangles, which must stay rigid (fixed by the editor level);
+   *   free-form polygons keep the default `true`.
    */
-  draw(polygon, { onChange }) {
+  draw(polygon, { onChange, editable = true }) {
     this.coordinates = polygon.coordinates[0].slice(0, -1);
     this.onChange = onChange;
+    this.editable = editable;
+    // Reset transient interaction state: this instance is reused across
+    // successive edits (polygon, then rectangle, then polygon again), so a
+    // `hoveredVertexIndex` left over from a previous editable shape could
+    // otherwise fire the delete shortcut against the shape just loaded.
+    this.drag = null;
+    this.vertexDragIndex = null;
+    this.hoveredVertexIndex = null;
     this._redraw();
   }
 
@@ -186,12 +208,14 @@ export class PolygonLayer {
         geometry: { type: 'Polygon', coordinates: [buildRing(this.coordinates)] },
         properties: { role: 'outline', valid: true },
       },
-      ...this.coordinates.map((coordinate, i) => ({
-        id: `vertex-${i}`,
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: coordinate },
-        properties: { role: 'vertex', pointIndex: i, dragging: i === this.vertexDragIndex },
-      })),
+      ...(this.editable
+        ? this.coordinates.map((coordinate, i) => ({
+            id: `vertex-${i}`,
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: coordinate },
+            properties: { role: 'vertex', pointIndex: i, dragging: i === this.vertexDragIndex },
+          }))
+        : []),
     ];
     for (const feature of features) {
       safeAddFeature(this.sdk, LAYER_NAME, feature);
@@ -212,6 +236,7 @@ export class PolygonLayer {
     }
 
     if (featureId === 'outline') {
+      if (!this.editable) return; // rectangles stay rigid: no vertex insertion
       if (this.vertexDragIndex != null || !this._lastMouse) return; // dropping a vertex drag, handled by _onMouseDown
       const { lon, lat } = this._lastMouse;
       const i = nearestEdgeIndex([lon, lat], this.coordinates);
@@ -248,6 +273,7 @@ export class PolygonLayer {
 
   // Mirrors WME's own geometry editor: hover a vertex, press the configured key to delete it.
   _onDeleteShortcut() {
+    if (!this.editable) return; // rectangles stay rigid: no vertex deletion
     if (this.hoveredVertexIndex == null) return;
     if (this.coordinates.length <= MIN_POINTS) {
       this.onChange?.(null, { error: `Un polígono necesita al menos ${MIN_POINTS} puntos.` });

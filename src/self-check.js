@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { getConfigForRank } from './config.js';
 import {
   buildRectangleFromCenter,
-  buildDiagonals,
   geometryBbox,
   nearestEdgeIndex,
   polygonAreaKm2,
@@ -50,16 +49,7 @@ function checkRectangle(areaKm2, aspectRatio) {
 }
 
 checkRectangle(7.59, 1);
-const polygon32 = checkRectangle(7.59, 3 / 2);
-
-const [diag1, diag2] = buildDiagonals(polygon32);
-for (const diagonal of [diag1, diag2]) {
-  assert.equal(diagonal.coordinates.length, 2);
-  const [[x1, y1], [x2, y2]] = diagonal.coordinates;
-  const midpoint = [(x1 + x2) / 2, (y1 + y2) / 2];
-  assert.ok(Math.abs(midpoint[0] - -3.7) < 0.001);
-  assert.ok(Math.abs(midpoint[1] - 40.4) < 0.001);
-}
+checkRectangle(7.59, 3 / 2);
 
 // Phase 2: polygon area/validity and rough center.
 const { polygon: squareKm7_59 } = buildRectangleFromCenter({ lon: -3.7, lat: 40.4 }, 7.59, 1);
