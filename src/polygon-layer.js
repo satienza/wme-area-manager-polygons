@@ -44,7 +44,7 @@
 // inserting a vertex from it uses `this._lastMouse`, the last position seen
 // by `wme-map-mouse-move`.
 
-import { nearestEdgeIndex } from './geometry.js';
+import { nearestEdgeIndex, translateRigid } from './geometry.js';
 import { safeAddLayer, safeAddFeature, safeRemoveFeature } from './sdk-safe.js';
 
 const LAYER_NAME = 'wme-area-manager-polygon';
@@ -317,10 +317,7 @@ export class PolygonLayer {
       return;
     }
     if (!this.drag) return;
-    const { anchor, base } = this.drag;
-    const dLon = lon - anchor.lon;
-    const dLat = lat - anchor.lat;
-    this.coordinates = base.map(([x, y]) => [x + dLon, y + dLat]);
+    this.coordinates = translateRigid(this.drag.base, this.drag.anchor, { lon, lat });
     this._redraw();
   }
 }

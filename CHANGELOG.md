@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.11.1 — Latitude-correct drag translation
+
+- Dragging a rectangle or free-form polygon no longer changes its geodesic area depending on latitude (it used to inflate moving south, shrink moving north). Whole-figure translation now rescales the longitude offset by `cos(anchor lat)/cos(current lat)` instead of applying the same raw degree delta everywhere — a degree of longitude spans a different real-world distance depending on latitude, while a degree of latitude doesn't. Fixes [#4](https://forgejo.petricor.net/satienza/wme-area-manager/issues/4).
+
 ## 0.11.0 — Restricted vertex editing by shape type
 
 - Rectangles are now rigid in edit mode: only whole-figure translation is allowed, no adding, moving individually, or deleting vertices — that stays exclusive to free-form polygons. Fixes [#2](https://forgejo.petricor.net/satienza/wme-area-manager/issues/2).

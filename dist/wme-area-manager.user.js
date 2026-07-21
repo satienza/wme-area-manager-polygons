@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.11.0
+// @version      0.11.1
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -328,6 +328,14 @@
   function polygonAreaKm2(polygon) {
     return index_default2(polygon) / 1e6;
   }
+  var DEG2RAD = Math.PI / 180;
+  function translateRigid(coordinates, anchor, current) {
+    const scale = Math.cos(anchor.lat * DEG2RAD) / Math.cos(current.lat * DEG2RAD);
+    return coordinates.map(([lon, lat]) => [
+      current.lon + (lon - anchor.lon) * scale,
+      current.lat + (lat - anchor.lat)
+    ]);
+  }
   function polygonCenter(coordinates) {
     const lon = coordinates.reduce((sum, [x]) => sum + x, 0) / coordinates.length;
     const lat = coordinates.reduce((sum, [, y]) => sum + y, 0) / coordinates.length;
@@ -624,10 +632,7 @@
         return;
       }
       if (!this.drag) return;
-      const { anchor, base } = this.drag;
-      const dLon = lon - anchor.lon;
-      const dLat = lat - anchor.lat;
-      this.coordinates = base.map(([x, y]) => [x + dLon, y + dLat]);
+      this.coordinates = translateRigid(this.drag.base, this.drag.anchor, { lon, lat });
       this._redraw();
     }
   };
@@ -826,7 +831,7 @@
   }
 
   // package.json
-  var version = "0.11.0";
+  var version = "0.11.1";
 
   // src/sidebar.js
   var ASPECT_RATIOS = [
