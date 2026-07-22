@@ -103,7 +103,7 @@ assert.ok(wkt.endsWith('))'));
 const [lon0, lat0] = squareKm7_59.coordinates[0][0];
 assert.ok(wkt.includes(`${lon0} ${lat0}`));
 
-// Phase 4: bbox for "Cargar/centrar" on a saved shape (no Turf).
+// bbox for centering the map on a shape being edited (no Turf).
 const bbox = geometryBbox(squareKm7_59);
 const [ring] = squareKm7_59.coordinates;
 const lons = ring.map((c) => c[0]);

@@ -1,5 +1,4 @@
 import { PolygonLayer } from './polygon-layer.js';
-import { SavedShapeLayer } from './saved-shape-layer.js';
 import { initSidebar } from './sidebar.js';
 import { initI18n } from './i18n.js';
 import { loadDeleteShortcutKey } from './storage.js';
@@ -15,8 +14,7 @@ function initScript() {
 
   sdk.Events.once({ eventName: 'wme-ready' }).then(() => {
     const polygonLayer = new PolygonLayer(sdk, loadDeleteShortcutKey());
-    const savedShapeLayer = new SavedShapeLayer(sdk);
-    initSidebar({ sdk, polygonLayer, savedShapeLayer });
+    initSidebar({ sdk, polygonLayer });
   });
 }
 

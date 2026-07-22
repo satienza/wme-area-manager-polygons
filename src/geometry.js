@@ -118,7 +118,7 @@ export function nearestEdgeIndex([x, y], coordinates) {
 
 /**
  * Bounding box of a polygon's outer ring, from raw min/max — no Turf needed.
- * Used to center/zoom the map on a saved shape (see saved-shape-layer.js).
+ * Used to center/zoom the map on a shape being edited.
  * @param {GeoJSON.Polygon} geometry
  * @returns {[number, number, number, number]} [west, south, east, north]
  */
