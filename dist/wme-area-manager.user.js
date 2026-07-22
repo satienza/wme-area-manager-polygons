@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.11.1
+// @version      0.11.2
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -752,6 +752,7 @@
       nothingToSave: "No hay ninguna figura para guardar.",
       saved: (nombre) => `Guardado "${nombre}".`,
       noSavedShapes: "No hay figuras guardadas.",
+      sectionNewItem: "Nuevo item",
       sectionCurrentShape: "Figura actual",
       sectionSaved: "Guardadas",
       load: "Cargar",
@@ -786,6 +787,7 @@
       nothingToSave: "There is no shape to save.",
       saved: (nombre) => `Saved "${nombre}".`,
       noSavedShapes: "No saved shapes.",
+      sectionNewItem: "New item",
       sectionCurrentShape: "Current shape",
       sectionSaved: "Saved",
       load: "Load",
@@ -831,7 +833,7 @@
   }
 
   // package.json
-  var version = "0.11.1";
+  var version = "0.11.2";
 
   // src/sidebar.js
   var ASPECT_RATIOS = [
@@ -876,6 +878,13 @@
       .wme-am-actions-row { display: flex; gap: 4px; margin-bottom: 4px; }
     `;
       tabPane.appendChild(style);
+      const newItemSection = document.createElement("div");
+      newItemSection.className = "wme-am-section";
+      const newItemHeader = document.createElement("div");
+      newItemHeader.className = "wme-am-section-header";
+      newItemHeader.innerText = t("sectionNewItem");
+      newItemSection.appendChild(newItemHeader);
+      tabPane.appendChild(newItemSection);
       const currentShapeSection = document.createElement("div");
       currentShapeSection.className = "wme-am-section";
       const currentShapeHeader = document.createElement("div");
@@ -903,7 +912,7 @@
         option.innerText = label;
         shapeSelect.appendChild(option);
       }
-      currentShapeSection.appendChild(shapeSelect);
+      newItemSection.appendChild(shapeSelect);
       const aspectSelect = document.createElement("select");
       for (const { label, value } of ASPECT_RATIOS) {
         const option = document.createElement("option");
@@ -911,12 +920,12 @@
         option.innerText = label;
         aspectSelect.appendChild(option);
       }
-      currentShapeSection.appendChild(aspectSelect);
+      newItemSection.appendChild(aspectSelect);
       const polygonHelpDiv = document.createElement("div");
-      currentShapeSection.appendChild(polygonHelpDiv);
+      newItemSection.appendChild(polygonHelpDiv);
       const shortcutLabel = document.createElement("label");
       shortcutLabel.innerText = t("deleteShortcutLabel");
-      currentShapeSection.appendChild(shortcutLabel);
+      newItemSection.appendChild(shortcutLabel);
       const shortcutInput = document.createElement("input");
       shortcutInput.type = "text";
       shortcutInput.maxLength = 1;
@@ -939,7 +948,7 @@
         refreshPolygonHelp();
       });
       const placeButton = document.createElement("button");
-      currentShapeSection.appendChild(placeButton);
+      newItemSection.appendChild(placeButton);
       const statusDiv = document.createElement("div");
       currentShapeSection.appendChild(statusDiv);
       const linkInput = document.createElement("input");
