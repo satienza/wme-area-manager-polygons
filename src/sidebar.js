@@ -1,5 +1,5 @@
 // Sidebar panel: placement mode, name field + save, list of saved rectangles
-// with actions (load/center, edit, export, copy link, rename, delete).
+// with actions (edit, export, copy link, rename, delete).
 // See requisitos_wme_area_manager.md, section 2 (points 1, 5.1, 6, 7, 10).
 // Phase 1: rectangle placement + link. Phase 2 adds the free-form polygon
 // mode. Phase 3 adds naming + save. Phase 4 adds the saved list and its actions.
@@ -61,7 +61,7 @@ function formatTimestamp(date) {
   );
 }
 
-export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
+export function initSidebar({ sdk, polygonLayer }) {
   const DEFAULT_ENV = detectEnv(sdk);
 
   // Built here (not at module scope) so its t() calls read the language
@@ -85,6 +85,7 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
       .wme-am-entry-table td { border: 1px solid #ccc; padding: 2px 6px; text-align: left; }
       .wme-am-entry-table tr:first-child td { font-weight: bold; }
       .wme-am-actions-row { display: flex; gap: 4px; margin-bottom: 4px; }
+      .wme-am-section--disabled { opacity: 0.5; pointer-events: none; }
     `;
     tabPane.appendChild(style);
 
@@ -208,11 +209,14 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
     // editing an existing saved entry, so saving overwrites it (upsert by id)
     // instead of creating a duplicate. Fresh placements start id-less.
     let currentEntry = null;
-    // The layer holding whatever is drawn right now (rectangle placement,
-    // polygon edit, or a read-only saved shape) — target of "Limpiar dibujo".
+    // The layer holding whatever is drawn right now (rectangle placement or
+    // polygon edit) — target of "Limpiar dibujo".
     let activeLayer = null;
-    // id of the entry currently shown read-only via "Cargar", if any.
-    let shownEntryId = null;
+    // JSON snapshot of `currentEntry.geometry` as of the last save (or the
+    // load from a saved entry); `null` means nothing has been saved yet
+    // (fresh, never-saved placement). Compared against the live geometry to
+    // detect unsaved changes before switching to edit another item.
+    let savedSnapshot = null;
 
     function updateCurrentEntry(entry) {
       currentEntry = { ...currentEntry, ...entry, env: DEFAULT_ENV };
@@ -220,6 +224,20 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
 
     function autofillName() {
       nameInput.value = `Polygon ${formatTimestamp(new Date())}`;
+    }
+
+    function isDirty() {
+      return currentEntry != null && JSON.stringify(currentEntry.geometry) !== savedSnapshot;
+    }
+
+    function setEditingActive(active) {
+      newItemSection.classList.toggle('wme-am-section--disabled', active);
+    }
+
+    function saveCurrent(nombre) {
+      saveRectangle({ ...currentEntry, nombre });
+      savedSnapshot = JSON.stringify(currentEntry.geometry);
+      renderList();
     }
 
     saveButton.addEventListener('click', () => {
@@ -232,14 +250,14 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
         statusDiv.innerText = t('nothingToSave');
         return;
       }
-      saveRectangle({ ...currentEntry, nombre });
+      saveCurrent(nombre);
       statusDiv.innerText = t('saved', nombre);
-      renderList();
     });
 
     clearButton.addEventListener('click', () => {
       activeLayer?.clear();
       activeLayer = null;
+      setEditingActive(false);
     });
 
     function renderList() {
@@ -296,22 +314,23 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
         container.appendChild(button);
       }
 
-      // Row 1: Load, Edit, Rename, Delete. Row 2: Link, GeoJson, WKT.
-      addAction(actionsRow1, t('load'), () => {
-        savedShapeLayer.draw(entry.geometry);
-        sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
-        activeLayer = savedShapeLayer;
-        shownEntryId = entry.id;
-      });
-
+      // Row 1: Edit, Rename, Delete. Row 2: Link, GeoJson, WKT.
       addAction(actionsRow1, t('edit'), () => {
+        if (currentEntry?.id === entry.id) return; // already the active item
+        if (activeLayer === polygonLayer && isDirty()) {
+          const guardar = confirm(t('confirmSaveChanges', currentEntry.nombre ?? nameInput.value));
+          if (guardar) saveCurrent(nameInput.value.trim() || currentEntry.nombre);
+        }
         currentEntry = { ...entry, env: DEFAULT_ENV };
+        savedSnapshot = JSON.stringify(entry.geometry);
         nameInput.value = entry.nombre;
         // Entries saved before `tipo` existed default to editable, matching
         // their current (unrestricted) behavior until re-saved.
         polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus, editable: entry.tipo !== 'rectangle' });
         updatePolygonStatus(entry.geometry);
+        sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
         activeLayer = polygonLayer;
+        setEditingActive(true);
       }, 'edit');
 
       addAction(actionsRow1, t('rename'), () => {
@@ -326,10 +345,9 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
         if (currentEntry?.id === entry.id) {
           polygonLayer.clear();
           currentEntry = null;
-        }
-        if (shownEntryId === entry.id) {
-          savedShapeLayer.clear();
-          shownEntryId = null;
+          activeLayer = null;
+          savedSnapshot = null;
+          setEditingActive(false);
         }
         renderList();
       }, 'trash');
@@ -398,11 +416,13 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
 
       const { polygon, bbox } = buildRectangleFromCenter({ lon, lat }, areaKm2, Number(aspectSelect.value));
       currentEntry = null; // fresh placement, not an edit of a saved entry
+      savedSnapshot = null;
       updateCurrentEntry({ tipo: 'rectangle' });
       // Rectangles are rigid (size fixed by the editor level): edit mode
       // only allows whole-figure translation, no vertex-level edits.
       polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: false });
       activeLayer = polygonLayer;
+      setEditingActive(true);
       sdk.Map.zoomToExtent({ bbox });
       updatePolygonStatus(polygon);
       autofillName();
@@ -415,9 +435,11 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
         return;
       }
       currentEntry = null; // fresh placement, not an edit of a saved entry
+      savedSnapshot = null;
       updateCurrentEntry({ tipo: 'polygon' });
       polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true });
       activeLayer = polygonLayer;
+      setEditingActive(true);
       updatePolygonStatus(polygon);
       autofillName();
     }

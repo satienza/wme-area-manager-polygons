@@ -18,7 +18,6 @@ const DICTIONARIES = {
     sectionNewItem: 'Nuevo item',
     sectionCurrentShape: 'Figura actual',
     sectionSaved: 'Guardadas',
-    load: 'Cargar',
     edit: 'Editar',
     exportGeoJSON: 'GeoJSON',
     exportWKT: 'WKT',
@@ -42,6 +41,7 @@ const DICTIONARIES = {
     deleteShortcutLabel: 'Tecla para borrar vértice:',
     deleteShortcutSaved: (key) => `Atajo de borrado actualizado a "${key}".`,
     invalidShortcutKey: 'Introduce una única tecla.',
+    confirmSaveChanges: (nombre) => `Hay cambios sin guardar en "${nombre}". ¿Guardar antes de continuar? Cancelar los descarta.`,
   },
   en: {
     tabLabel: 'Area Manager',
@@ -57,7 +57,6 @@ const DICTIONARIES = {
     sectionNewItem: 'New item',
     sectionCurrentShape: 'Current shape',
     sectionSaved: 'Saved',
-    load: 'Load',
     edit: 'Edit',
     exportGeoJSON: 'GeoJSON',
     exportWKT: 'WKT',
@@ -81,6 +80,7 @@ const DICTIONARIES = {
     deleteShortcutLabel: 'Delete-vertex key:',
     deleteShortcutSaved: (key) => `Delete shortcut updated to "${key}".`,
     invalidShortcutKey: 'Enter a single key.',
+    confirmSaveChanges: (nombre) => `There are unsaved changes in "${nombre}". Save before continuing? Cancel discards them.`,
   },
 };
 

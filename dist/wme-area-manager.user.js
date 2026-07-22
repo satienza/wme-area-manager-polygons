@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.11.2
+// @version      0.12.0
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -637,32 +637,6 @@
     }
   };
 
-  // src/saved-shape-layer.js
-  var LAYER_NAME2 = "wme-area-manager-saved-shape";
-  var SavedShapeLayer = class {
-    constructor(sdk) {
-      this.sdk = sdk;
-      safeAddLayer(sdk, {
-        layerName: LAYER_NAME2,
-        styleRules: [{ style: { fill: false, strokeColor: "#0074D9", strokeWidth: 3 } }]
-      });
-      this.featureIds = [];
-    }
-    /** @param {GeoJSON.Polygon} geometry */
-    draw(geometry) {
-      this.clear();
-      const feature2 = { id: "outline", type: "Feature", geometry, properties: {} };
-      safeAddFeature(this.sdk, LAYER_NAME2, feature2);
-      this.featureIds.push(feature2.id);
-    }
-    clear() {
-      for (const featureId of this.featureIds) {
-        safeRemoveFeature(this.sdk, LAYER_NAME2, featureId);
-      }
-      this.featureIds = [];
-    }
-  };
-
   // src/config.js
   var LEVEL_RULES = [
     { levels: [1, 2], zoom: 15, areaKm2: 7.59 },
@@ -755,7 +729,6 @@
       sectionNewItem: "Nuevo item",
       sectionCurrentShape: "Figura actual",
       sectionSaved: "Guardadas",
-      load: "Cargar",
       edit: "Editar",
       exportGeoJSON: "GeoJSON",
       exportWKT: "WKT",
@@ -774,7 +747,8 @@
       polygonEditHelp: (key) => `Edici\xF3n del pol\xEDgono: clic en el borde a\xF1ade un punto \xB7 clic en el interior arrastra la figura \xB7 clic en un v\xE9rtice lo arrastra \xB7 pasar el rat\xF3n por un v\xE9rtice y pulsar "${key}" lo borra.`,
       deleteShortcutLabel: "Tecla para borrar v\xE9rtice:",
       deleteShortcutSaved: (key) => `Atajo de borrado actualizado a "${key}".`,
-      invalidShortcutKey: "Introduce una \xFAnica tecla."
+      invalidShortcutKey: "Introduce una \xFAnica tecla.",
+      confirmSaveChanges: (nombre) => `Hay cambios sin guardar en "${nombre}". \xBFGuardar antes de continuar? Cancelar los descarta.`
     },
     en: {
       tabLabel: "Area Manager",
@@ -790,7 +764,6 @@
       sectionNewItem: "New item",
       sectionCurrentShape: "Current shape",
       sectionSaved: "Saved",
-      load: "Load",
       edit: "Edit",
       exportGeoJSON: "GeoJSON",
       exportWKT: "WKT",
@@ -809,7 +782,8 @@
       polygonEditHelp: (key) => `Polygon editing: click the edge to add a point \xB7 click the interior to drag the shape \xB7 click a vertex to drag it \xB7 hover a vertex and press "${key}" to delete it.`,
       deleteShortcutLabel: "Delete-vertex key:",
       deleteShortcutSaved: (key) => `Delete shortcut updated to "${key}".`,
-      invalidShortcutKey: "Enter a single key."
+      invalidShortcutKey: "Enter a single key.",
+      confirmSaveChanges: (nombre) => `There are unsaved changes in "${nombre}". Save before continuing? Cancel discards them.`
     }
   };
   var DEFAULT_LANG = "es";
@@ -833,7 +807,7 @@
   }
 
   // package.json
-  var version = "0.11.2";
+  var version = "0.12.0";
 
   // src/sidebar.js
   var ASPECT_RATIOS = [
@@ -859,7 +833,7 @@
     const pad = (n) => String(n).padStart(2, "0");
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
   }
-  function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
+  function initSidebar({ sdk, polygonLayer }) {
     const DEFAULT_ENV = detectEnv(sdk);
     const SHAPES = [
       { label: t("shapeRectangle"), value: "rectangle" },
@@ -876,6 +850,7 @@
       .wme-am-entry-table td { border: 1px solid #ccc; padding: 2px 6px; text-align: left; }
       .wme-am-entry-table tr:first-child td { font-weight: bold; }
       .wme-am-actions-row { display: flex; gap: 4px; margin-bottom: 4px; }
+      .wme-am-section--disabled { opacity: 0.5; pointer-events: none; }
     `;
       tabPane.appendChild(style);
       const newItemSection = document.createElement("div");
@@ -977,12 +952,23 @@
       savedSection.appendChild(listContainer);
       let currentEntry = null;
       let activeLayer = null;
-      let shownEntryId = null;
+      let savedSnapshot = null;
       function updateCurrentEntry(entry) {
         currentEntry = { ...currentEntry, ...entry, env: DEFAULT_ENV };
       }
       function autofillName() {
         nameInput.value = `Polygon ${formatTimestamp(/* @__PURE__ */ new Date())}`;
+      }
+      function isDirty() {
+        return currentEntry != null && JSON.stringify(currentEntry.geometry) !== savedSnapshot;
+      }
+      function setEditingActive(active) {
+        newItemSection.classList.toggle("wme-am-section--disabled", active);
+      }
+      function saveCurrent(nombre) {
+        saveRectangle({ ...currentEntry, nombre });
+        savedSnapshot = JSON.stringify(currentEntry.geometry);
+        renderList();
       }
       saveButton.addEventListener("click", () => {
         const nombre = nameInput.value.trim();
@@ -994,13 +980,13 @@
           statusDiv.innerText = t("nothingToSave");
           return;
         }
-        saveRectangle({ ...currentEntry, nombre });
+        saveCurrent(nombre);
         statusDiv.innerText = t("saved", nombre);
-        renderList();
       });
       clearButton.addEventListener("click", () => {
         activeLayer?.clear();
         activeLayer = null;
+        setEditingActive(false);
       });
       function renderList() {
         listContainer.innerHTML = "";
@@ -1047,18 +1033,20 @@
           button.addEventListener("click", onClick);
           container.appendChild(button);
         }
-        addAction(actionsRow1, t("load"), () => {
-          savedShapeLayer.draw(entry.geometry);
-          sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
-          activeLayer = savedShapeLayer;
-          shownEntryId = entry.id;
-        });
         addAction(actionsRow1, t("edit"), () => {
+          if (currentEntry?.id === entry.id) return;
+          if (activeLayer === polygonLayer && isDirty()) {
+            const guardar = confirm(t("confirmSaveChanges", currentEntry.nombre ?? nameInput.value));
+            if (guardar) saveCurrent(nameInput.value.trim() || currentEntry.nombre);
+          }
           currentEntry = { ...entry, env: DEFAULT_ENV };
+          savedSnapshot = JSON.stringify(entry.geometry);
           nameInput.value = entry.nombre;
           polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus, editable: entry.tipo !== "rectangle" });
           updatePolygonStatus(entry.geometry);
+          sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
           activeLayer = polygonLayer;
+          setEditingActive(true);
         }, "edit");
         addAction(actionsRow1, t("rename"), () => {
           const nombre = prompt(t("renamePrompt"), entry.nombre);
@@ -1071,10 +1059,9 @@
           if (currentEntry?.id === entry.id) {
             polygonLayer.clear();
             currentEntry = null;
-          }
-          if (shownEntryId === entry.id) {
-            savedShapeLayer.clear();
-            shownEntryId = null;
+            activeLayer = null;
+            savedSnapshot = null;
+            setEditingActive(false);
           }
           renderList();
         }, "trash");
@@ -1132,9 +1119,11 @@
         const { coordinates: [lon, lat] } = await sdk.Map.drawPoint();
         const { polygon, bbox } = buildRectangleFromCenter({ lon, lat }, areaKm2, Number(aspectSelect.value));
         currentEntry = null;
+        savedSnapshot = null;
         updateCurrentEntry({ tipo: "rectangle" });
         polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: false });
         activeLayer = polygonLayer;
+        setEditingActive(true);
         sdk.Map.zoomToExtent({ bbox });
         updatePolygonStatus(polygon);
         autofillName();
@@ -1146,9 +1135,11 @@
           return;
         }
         currentEntry = null;
+        savedSnapshot = null;
         updateCurrentEntry({ tipo: "polygon" });
         polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true });
         activeLayer = polygonLayer;
+        setEditingActive(true);
         updatePolygonStatus(polygon);
         autofillName();
       }
@@ -1178,8 +1169,7 @@
     initI18n(sdk);
     sdk.Events.once({ eventName: "wme-ready" }).then(() => {
       const polygonLayer = new PolygonLayer(sdk, loadDeleteShortcutKey());
-      const savedShapeLayer = new SavedShapeLayer(sdk);
-      initSidebar({ sdk, polygonLayer, savedShapeLayer });
+      initSidebar({ sdk, polygonLayer });
     });
   }
   if (document.readyState === "loading") {

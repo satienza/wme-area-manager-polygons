@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.12.0 — Rework saved item editing
+
+- Removed the read-only "Load" action for saved items — "Edit" already loads the shape (and centers/zooms the map on it) and lets you modify it directly.
+- Only one item can be edited at a time: clicking "Edit" on another item while there are unsaved changes now asks whether to save first (OK saves, Cancel discards) before loading the newly selected item either way.
+- "New item" controls (shape/aspect-ratio selectors, "Place rectangle/polygon" button, polygon edit help, delete-vertex shortcut config) are now disabled while a shape is being placed or edited.
+
+Closes [#8](https://forgejo.petricor.net/satienza/wme-area-manager/issues/8).
+
 ## 0.11.2 — Split "New item" from "Current shape"
 
 - Sidebar now has a separate "New item" section for placing a shape (shape/aspect-ratio selectors, polygon edit help, delete-vertex shortcut config, "Place rectangle/polygon" button), leaving "Current shape" with just the state of the placed/loaded figure (status, link, name, save, clear, export). Closes [#6](https://forgejo.petricor.net/satienza/wme-area-manager/issues/6).
