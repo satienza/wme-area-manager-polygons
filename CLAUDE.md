@@ -31,6 +31,7 @@
 - Preguntar si el funcionamiento es correcto o hay que corregir algo.
   - Si hay que corregir algo: al terminar la corrección, recompilar y repetir la pregunta.
   - Si es correcto: valorar los cambios realizados y sugerir el número de versión (`package.json` + entrada en `CHANGELOG.md`), mostrarlo y esperar confirmación — no incrementar la versión por defecto sin confirmación.
+- Con la versión confirmada, revisar que la documentación (`README.md`, etc.) siga reflejando el estado real del proyecto (versión, funcionalidades) y actualizarla si hace falta.
 
 ### Commit, PR y release
 
