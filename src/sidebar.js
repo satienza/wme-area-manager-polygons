@@ -88,6 +88,14 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
     `;
     tabPane.appendChild(style);
 
+    const newItemSection = document.createElement('div');
+    newItemSection.className = 'wme-am-section';
+    const newItemHeader = document.createElement('div');
+    newItemHeader.className = 'wme-am-section-header';
+    newItemHeader.innerText = t('sectionNewItem');
+    newItemSection.appendChild(newItemHeader);
+    tabPane.appendChild(newItemSection);
+
     const currentShapeSection = document.createElement('div');
     currentShapeSection.className = 'wme-am-section';
     const currentShapeHeader = document.createElement('div');
@@ -118,7 +126,7 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
       option.innerText = label;
       shapeSelect.appendChild(option);
     }
-    currentShapeSection.appendChild(shapeSelect);
+    newItemSection.appendChild(shapeSelect);
 
     const aspectSelect = document.createElement('select');
     for (const { label, value } of ASPECT_RATIOS) {
@@ -127,14 +135,14 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
       option.innerText = label;
       aspectSelect.appendChild(option);
     }
-    currentShapeSection.appendChild(aspectSelect);
+    newItemSection.appendChild(aspectSelect);
 
     const polygonHelpDiv = document.createElement('div');
-    currentShapeSection.appendChild(polygonHelpDiv);
+    newItemSection.appendChild(polygonHelpDiv);
 
     const shortcutLabel = document.createElement('label');
     shortcutLabel.innerText = t('deleteShortcutLabel');
-    currentShapeSection.appendChild(shortcutLabel);
+    newItemSection.appendChild(shortcutLabel);
 
     const shortcutInput = document.createElement('input');
     shortcutInput.type = 'text';
@@ -161,7 +169,7 @@ export function initSidebar({ sdk, polygonLayer, savedShapeLayer }) {
     });
 
     const placeButton = document.createElement('button');
-    currentShapeSection.appendChild(placeButton);
+    newItemSection.appendChild(placeButton);
 
     const statusDiv = document.createElement('div');
     currentShapeSection.appendChild(statusDiv);
