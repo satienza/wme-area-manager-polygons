@@ -111,3 +111,20 @@ export function t(key, ...args) {
   const entry = DICTIONARIES[activeLang]?.[key] ?? DICTIONARIES[DEFAULT_LANG][key];
   return typeof entry === 'function' ? entry(...args) : entry;
 }
+
+/**
+ * "119,1 (98,02%)" style label for the live area/limit readout drawn on the
+ * map (polygon-layer.js). Decimal separator follows the active WME language
+ * (comma for es, dot otherwise) via Intl.NumberFormat, so it doesn't need its
+ * own per-language dictionary entry.
+ * @param {number} areaKm2
+ * @param {number} maxAreaKm2
+ * @returns {string}
+ */
+export function formatAreaLabel(areaKm2, maxAreaKm2) {
+  const locale = activeLang === 'es' ? 'es-ES' : 'en-US';
+  const percent = (areaKm2 / maxAreaKm2) * 100;
+  const area = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(areaKm2);
+  const pct = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(percent);
+  return `${area} (${pct}%)`;
+}

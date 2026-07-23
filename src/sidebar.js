@@ -338,7 +338,13 @@ export function initSidebar({ sdk, polygonLayer }) {
         nameInput.value = entry.nombre;
         // Entries saved before `tipo` existed default to editable, matching
         // their current (unrestricted) behavior until re-saved.
-        polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus, editable: entry.tipo !== 'rectangle' });
+        const editUserInfo = sdk.State.getUserInfo();
+        const editMaxAreaKm2 = editUserInfo ? getConfigForRank(editUserInfo.rank).areaKm2 : undefined;
+        polygonLayer.draw(entry.geometry, {
+          onChange: updatePolygonStatus,
+          editable: entry.tipo !== 'rectangle',
+          maxAreaKm2: editMaxAreaKm2,
+        });
         updatePolygonStatus(entry.geometry);
         sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
         activeLayer = polygonLayer;
@@ -435,6 +441,10 @@ export function initSidebar({ sdk, polygonLayer }) {
     }
 
     async function placePolygon() {
+      const userInfo = sdk.State.getUserInfo();
+      if (!userInfo) return;
+      const { areaKm2: maxAreaKm2 } = getConfigForRank(userInfo.rank);
+
       const polygon = await sdk.Map.drawPolygon();
       if (!polygon) {
         statusDiv.innerText = t('drawingCancelled');
@@ -443,7 +453,7 @@ export function initSidebar({ sdk, polygonLayer }) {
       currentEntry = null; // fresh placement, not an edit of a saved entry
       savedSnapshot = null;
       updateCurrentEntry({ tipo: 'polygon' });
-      polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true });
+      polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true, maxAreaKm2 });
       activeLayer = polygonLayer;
       setEditingActive(true);
       updatePolygonStatus(polygon);

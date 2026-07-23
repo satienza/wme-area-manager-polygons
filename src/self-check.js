@@ -13,7 +13,7 @@ import {
   toWKT,
   translateRigid,
 } from './geometry.js';
-const { t } = await import('./i18n.js');
+const { t, formatAreaLabel } = await import('./i18n.js');
 
 assert.equal(getConfigForRank(0).level, 1);
 assert.equal(getConfigForRank(2).zoom, 14);
@@ -124,5 +124,10 @@ assert.equal(nearestEdgeIndex(midpoint(nw, sw), [sw, se, ne, nw]), 3); // west e
 // defaults to `es` until initI18n(sdk) runs, which this test never calls.
 assert.equal(t('save'), 'Guardar');
 assert.equal(t('saved', 'Test'), 'Guardado "Test".');
+
+// Live area/limit label (map overlay, polygon-layer.js): comma decimal in
+// `es` (the default language here), area to 1 decimal, percentage to 2.
+assert.equal(formatAreaLabel(119.1, 121.5), '119,1 (98,02%)');
+assert.equal(formatAreaLabel(121.5, 121.5), '121,5 (100,00%)');
 
 console.log('self-check OK');

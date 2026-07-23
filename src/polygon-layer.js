@@ -44,8 +44,9 @@
 // inserting a vertex from it uses `this._lastMouse`, the last position seen
 // by `wme-map-mouse-move`.
 
-import { nearestEdgeIndex, translateRigid } from './geometry.js';
+import { nearestEdgeIndex, translateRigid, polygonAreaKm2, polygonCenter } from './geometry.js';
 import { safeAddLayer, safeAddFeature, safeRemoveFeature } from './sdk-safe.js';
+import { formatAreaLabel } from './i18n.js';
 
 const LAYER_NAME = 'wme-area-manager-polygon';
 const MIN_POINTS = 3;
@@ -65,6 +66,9 @@ export class PolygonLayer {
     this.sdk = sdk;
     safeAddLayer(sdk, {
       layerName: LAYER_NAME,
+      styleContext: {
+        label: (context) => context?.feature?.properties?.label,
+      },
       styleRules: [
         {
           predicate: (props) => props.role === 'fill' && props.valid,
@@ -89,6 +93,34 @@ export class PolygonLayer {
         {
           predicate: (props) => props.role === 'vertex' && props.dragging,
           style: { fillColor: '#FFDC00', fillOpacity: 1, pointRadius: 8 },
+        },
+        {
+          // pointRadius: 0 keeps this feature text-only: no visible marker,
+          // no hit target competing with the fill's whole-shape drag. Same
+          // green/red as the fill/outline so the label's color echoes
+          // validity; the white outline keeps it readable over either.
+          predicate: (props) => props.role === 'label' && props.valid,
+          style: {
+            label: '${label}',
+            fontColor: '#2ECC40',
+            fontWeight: 'bold',
+            fontSize: 13,
+            labelOutlineColor: '#FFFFFF',
+            labelOutlineWidth: 3,
+            pointRadius: 0,
+          },
+        },
+        {
+          predicate: (props) => props.role === 'label' && !props.valid,
+          style: {
+            label: '${label}',
+            fontColor: '#FF4136',
+            fontWeight: 'bold',
+            fontSize: 13,
+            labelOutlineColor: '#FFFFFF',
+            labelOutlineWidth: 3,
+            pointRadius: 0,
+          },
         },
       ],
     });
@@ -127,16 +159,19 @@ export class PolygonLayer {
 
   /**
    * @param {GeoJSON.Polygon} polygon - as returned by sdk.Map.drawPolygon().
-   * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void, editable?: boolean }} handlers
+   * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void, editable?: boolean, maxAreaKm2?: number }} handlers
    *   `editable: false` locks the shape to whole-figure translation only —
    *   no vertex markers, no add-on-outline-click, no delete shortcut. Used
    *   for rectangles, which must stay rigid (fixed by the editor level);
-   *   free-form polygons keep the default `true`.
+   *   free-form polygons keep the default `true`. `maxAreaKm2` (the current
+   *   rank's area limit) drives the live area/percentage label, only shown
+   *   while `editable`.
    */
-  draw(polygon, { onChange, editable = true }) {
+  draw(polygon, { onChange, editable = true, maxAreaKm2 }) {
     this.coordinates = polygon.coordinates[0].slice(0, -1);
     this.onChange = onChange;
     this.editable = editable;
+    this.maxAreaKm2 = maxAreaKm2;
     // Reset transient interaction state: this instance is reused across
     // successive edits (polygon, then rectangle, then polygon again), so a
     // `hoveredVertexIndex` left over from a previous editable shape could
@@ -216,11 +251,30 @@ export class PolygonLayer {
             properties: { role: 'vertex', pointIndex: i, dragging: i === this.vertexDragIndex },
           }))
         : []),
+      // Recomputed on every redraw -- including per-frame during a drag
+      // (_onMouseMove below) -- so the readout tracks the shape live, not
+      // just on drop like the sidebar's onChange.
+      ...(this.editable && this.maxAreaKm2 != null ? [this._buildLabelFeature()] : []),
     ];
     for (const feature of features) {
       safeAddFeature(this.sdk, LAYER_NAME, feature);
       this.featureIds.push(feature.id);
     }
+  }
+
+  _buildLabelFeature() {
+    const { lon, lat } = polygonCenter(this.coordinates);
+    const areaKm2 = polygonAreaKm2({ type: 'Polygon', coordinates: [buildRing(this.coordinates)] });
+    return {
+      id: 'label',
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [lon, lat] },
+      properties: {
+        role: 'label',
+        valid: areaKm2 <= this.maxAreaKm2,
+        label: formatAreaLabel(areaKm2, this.maxAreaKm2),
+      },
+    };
   }
 
   _onFeatureClicked({ featureId, layerName }) {

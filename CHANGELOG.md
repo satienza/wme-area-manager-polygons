@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.13.0 — Live area/limit label on the polygon being edited
+
+- Editing a free-form polygon now shows a label centered on the shape with its current area and percentage of the level's limit (e.g. "119,1 (98.02%)"), recalculated live on every vertex change — including while dragging, not just on drop. Text color follows validity (green within the limit, red over it), matching the fill/outline.
+- Not shown while editing a rectangle, since its area is fixed by the editor level.
+
+Closes [#13](https://forgejo.petricor.net/satienza/wme-area-manager/issues/13).
+
 ## 0.12.1 — Fix "Clear drawing" leaving stale link/name/export data
 
 - "Clear drawing" now also clears the link, name, status and export fields, and drops the in-memory current-shape state (`currentEntry`, `savedSnapshot`) — previously only the drawn layer was cleared, so pressing "Save" afterwards could silently re-save the discarded geometry under whatever name was left in the field.

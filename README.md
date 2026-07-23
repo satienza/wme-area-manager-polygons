@@ -11,7 +11,7 @@ Ongoing work (features, bugs) is tracked via issues and pull requests in the [Fo
 
 ## Status
 
-Feature-complete, published userscript (v0.12.1 — see `CHANGELOG.md` for details): rectangle and free-form polygon drawing, area validation by editor level, save/load/edit/export of named shapes, i18n, and Greasyfork packaging.
+Feature-complete, published userscript (v0.13.0 — see `CHANGELOG.md` for details): rectangle and free-form polygon drawing, area validation by editor level with a live area/limit label while editing a polygon, save/load/edit/export of named shapes, i18n, and Greasyfork packaging.
 
 ## Structure
 
@@ -22,8 +22,7 @@ src/
   config.js             Editor level -> zoom/area rule
   geometry.js           Geodesic area/shape calculations (Turf.js), GeoJSON/WKT export
   storage.js            Persistence of saved shapes (GM_setValue/GM_getValue)
-  polygon-layer.js       Editable layer: drawing, dragging, vertex add/move/delete
-  saved-shape-layer.js   Read-only layer for a loaded saved shape
+  polygon-layer.js       Editable layer: drawing, dragging, vertex add/move/delete, live area/limit label
   sdk-safe.js            Defensive wrappers around SDK calls
   i18n.js                Text dictionary and t() lookup
   self-check.js          Lightweight runtime self-tests (npm test)
