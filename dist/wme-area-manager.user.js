@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.12.0
+// @version      0.12.1
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -807,7 +807,7 @@
   }
 
   // package.json
-  var version = "0.12.0";
+  var version = "0.12.1";
 
   // src/sidebar.js
   var ASPECT_RATIOS = [
@@ -965,6 +965,17 @@
       function setEditingActive(active) {
         newItemSection.classList.toggle("wme-am-section--disabled", active);
       }
+      function clearCurrentShape() {
+        activeLayer?.clear();
+        activeLayer = null;
+        currentEntry = null;
+        savedSnapshot = null;
+        linkInput.value = "";
+        nameInput.value = "";
+        exportOutput.value = "";
+        statusDiv.innerText = "";
+        setEditingActive(false);
+      }
       function saveCurrent(nombre) {
         saveRectangle({ ...currentEntry, nombre });
         savedSnapshot = JSON.stringify(currentEntry.geometry);
@@ -983,11 +994,7 @@
         saveCurrent(nombre);
         statusDiv.innerText = t("saved", nombre);
       });
-      clearButton.addEventListener("click", () => {
-        activeLayer?.clear();
-        activeLayer = null;
-        setEditingActive(false);
-      });
+      clearButton.addEventListener("click", clearCurrentShape);
       function renderList() {
         listContainer.innerHTML = "";
         const rectangles = loadRectangles();
@@ -1056,13 +1063,7 @@
         }, "tag");
         addAction(actionsRow1, t("delete"), () => {
           deleteRectangle(entry.id);
-          if (currentEntry?.id === entry.id) {
-            polygonLayer.clear();
-            currentEntry = null;
-            activeLayer = null;
-            savedSnapshot = null;
-            setEditingActive(false);
-          }
+          if (currentEntry?.id === entry.id) clearCurrentShape();
           renderList();
         }, "trash");
         addAction(actionsRow2, t("copyLink"), () => {
