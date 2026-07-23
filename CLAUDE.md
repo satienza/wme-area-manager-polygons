@@ -31,8 +31,10 @@
 - Una vez aceptado el plan y hechos los cambios, correr `npm test` (self-check) y compilar el proyecto (`npm run build`) para que el usuario lo pruebe en el editor.
 - Preguntar si el funcionamiento es correcto o hay que corregir algo.
   - Si hay que corregir algo: al terminar la corrección, recompilar y repetir la pregunta.
-  - Si es correcto: valorar los cambios realizados y sugerir el número de versión (`package.json` + entrada en `CHANGELOG.md`), mostrarlo y esperar confirmación — no incrementar la versión por defecto sin confirmación.
-- Con la versión confirmada, revisar que la documentación (`README.md`, etc.) siga reflejando el estado real del proyecto (versión, funcionalidades) y actualizarla si hace falta.
+  - Si es correcto: valorar los cambios realizados y si es necesario un nuevo número de versión (cambios menores, relacionados con otro issue que queda por resolver, etc...).
+    - Si se considera que es necesario una nueva versión, sugerir el número de versión (`package.json` + entrada en `CHANGELOG.md`), mostrarlo y esperar confirmación — no incrementar la versión por defecto sin confirmación.
+      - Una vez el usuario la confirme, revisar que la documentación (`README.md`, etc.) siga reflejando el estado real del proyecto (versión, funcionalidades, estructura de ficheros) y actualizarla si hace falta.
+    - Si se decide no incrementar la versión revisar que la documentación (`README.md`, etc.) siga reflejando el estado real del proyecto (funcionalidades, estructura de ficheros) y actualizarla si hace falta.
 
 ### Commit, PR y release
 
