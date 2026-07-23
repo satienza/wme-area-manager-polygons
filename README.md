@@ -11,7 +11,7 @@ Ongoing work (features, bugs) is tracked via issues and pull requests in the [Fo
 
 ## Status
 
-Feature-complete, published userscript (v0.12.0 — see `CHANGELOG.md` for details): rectangle and free-form polygon drawing, area validation by editor level, save/load/edit/export of named shapes, i18n, and Greasyfork packaging.
+Feature-complete, published userscript (v0.12.1 — see `CHANGELOG.md` for details): rectangle and free-form polygon drawing, area validation by editor level, save/load/edit/export of named shapes, i18n, and Greasyfork packaging.
 
 ## Structure
 

@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.12.1 — Fix "Clear drawing" leaving stale link/name/export data
+
+- "Clear drawing" now also clears the link, name, status and export fields, and drops the in-memory current-shape state (`currentEntry`, `savedSnapshot`) — previously only the drawn layer was cleared, so pressing "Save" afterwards could silently re-save the discarded geometry under whatever name was left in the field.
+- The same reset now applies when deleting the item currently being edited.
+
+Fixes [#10](https://forgejo.petricor.net/satienza/wme-area-manager/issues/10).
+
 ## 0.12.0 — Rework saved item editing
 
 - Removed the read-only "Load" action for saved items — "Edit" already loads the shape (and centers/zooms the map on it) and lets you modify it directly.

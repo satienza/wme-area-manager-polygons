@@ -234,6 +234,22 @@ export function initSidebar({ sdk, polygonLayer }) {
       newItemSection.classList.toggle('wme-am-section--disabled', active);
     }
 
+    // Single reset point for "Limpiar dibujo" and for deleting the item
+    // currently being edited — both need to drop the active shape's state
+    // (layer, currentEntry, savedSnapshot) and its UI reflection (link,
+    // name, export output, status) so neither leaves stale data behind.
+    function clearCurrentShape() {
+      activeLayer?.clear();
+      activeLayer = null;
+      currentEntry = null;
+      savedSnapshot = null;
+      linkInput.value = '';
+      nameInput.value = '';
+      exportOutput.value = '';
+      statusDiv.innerText = '';
+      setEditingActive(false);
+    }
+
     function saveCurrent(nombre) {
       saveRectangle({ ...currentEntry, nombre });
       savedSnapshot = JSON.stringify(currentEntry.geometry);
@@ -254,11 +270,7 @@ export function initSidebar({ sdk, polygonLayer }) {
       statusDiv.innerText = t('saved', nombre);
     });
 
-    clearButton.addEventListener('click', () => {
-      activeLayer?.clear();
-      activeLayer = null;
-      setEditingActive(false);
-    });
+    clearButton.addEventListener('click', clearCurrentShape);
 
     function renderList() {
       listContainer.innerHTML = '';
@@ -342,13 +354,7 @@ export function initSidebar({ sdk, polygonLayer }) {
 
       addAction(actionsRow1, t('delete'), () => {
         deleteRectangle(entry.id);
-        if (currentEntry?.id === entry.id) {
-          polygonLayer.clear();
-          currentEntry = null;
-          activeLayer = null;
-          savedSnapshot = null;
-          setEditingActive(false);
-        }
+        if (currentEntry?.id === entry.id) clearCurrentShape();
         renderList();
       }, 'trash');
 
