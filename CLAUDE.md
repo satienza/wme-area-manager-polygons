@@ -41,5 +41,5 @@
 - Con la versión confirmada, preparar el commit, mostrarlo y esperar confirmación.
 - Confirmado el commit: crearlo y abrir el pull request. El merge del PR se confirma por separado, no es automático.
 - Al mergear un PR que incrementó la versión, crear la release correspondiente en Forgejo (tag + notas tomadas de la entrada de `CHANGELOG.md`).
-- La descripción de las releases y los tags no debe contener keywords de issues, sólo la descripción de las novedades.
+- La descripción de las releases y los tags no debe contener keywords de issues, sólo la descripción de las novedades, ya que es el texto que aparece en el historial de Greasyfork.
 - Tras el merge, borrar la rama del issue (local y remota).
