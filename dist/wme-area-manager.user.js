@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.12.1
+// @version      0.13.0
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -399,6 +399,106 @@
     }
   }
 
+  // src/i18n.js
+  var DICTIONARIES = {
+    es: {
+      tabLabel: "Area Manager",
+      shapeRectangle: "Rect\xE1ngulo",
+      shapePolygon: "Pol\xEDgono",
+      namePlaceholder: "Nombre",
+      save: "Guardar",
+      clearDrawing: "Limpiar dibujo",
+      nameRequired: "El nombre es obligatorio para guardar.",
+      nothingToSave: "No hay ninguna figura para guardar.",
+      saved: (nombre) => `Guardado "${nombre}".`,
+      noSavedShapes: "No hay figuras guardadas.",
+      sectionNewItem: "Nuevo item",
+      sectionCurrentShape: "Figura actual",
+      sectionSaved: "Guardadas",
+      edit: "Editar",
+      exportGeoJSON: "GeoJSON",
+      exportWKT: "WKT",
+      copyLink: "Copiar enlace",
+      rename: "Renombrar",
+      delete: "Eliminar",
+      linkCopied: "Enlace copiado.",
+      linkCopyFailed: "No se pudo copiar autom\xE1ticamente; usa el campo de enlace.",
+      renamePrompt: "Nuevo nombre:",
+      placeRectangle: "Colocar rect\xE1ngulo",
+      placePolygon: "Colocar pol\xEDgono",
+      areaWithinLimit: (areaKm2, level, maxAreaKm2) => `\xC1rea: ${areaKm2} km\xB2 \u2014 dentro del l\xEDmite del nivel ${level} (m\xE1x. ${maxAreaKm2} km\xB2)`,
+      areaExceedsLimit: (areaKm2, level, maxAreaKm2) => `\xC1rea: ${areaKm2} km\xB2 \u2014 supera el l\xEDmite del nivel ${level} (m\xE1x. ${maxAreaKm2} km\xB2)`,
+      drawingCancelled: "Dibujo cancelado.",
+      placementFailed: (message) => `No se pudo colocar la figura: ${message}. Prueba a acercar el zoom.`,
+      polygonEditHelp: (key) => `Edici\xF3n del pol\xEDgono: clic en el borde a\xF1ade un punto \xB7 clic en el interior arrastra la figura \xB7 clic en un v\xE9rtice lo arrastra \xB7 pasar el rat\xF3n por un v\xE9rtice y pulsar "${key}" lo borra.`,
+      deleteShortcutLabel: "Tecla para borrar v\xE9rtice:",
+      deleteShortcutSaved: (key) => `Atajo de borrado actualizado a "${key}".`,
+      invalidShortcutKey: "Introduce una \xFAnica tecla.",
+      confirmSaveChanges: (nombre) => `Hay cambios sin guardar en "${nombre}". \xBFGuardar antes de continuar? Cancelar los descarta.`
+    },
+    en: {
+      tabLabel: "Area Manager",
+      shapeRectangle: "Rectangle",
+      shapePolygon: "Polygon",
+      namePlaceholder: "Name",
+      save: "Save",
+      clearDrawing: "Clear drawing",
+      nameRequired: "A name is required to save.",
+      nothingToSave: "There is no shape to save.",
+      saved: (nombre) => `Saved "${nombre}".`,
+      noSavedShapes: "No saved shapes.",
+      sectionNewItem: "New item",
+      sectionCurrentShape: "Current shape",
+      sectionSaved: "Saved",
+      edit: "Edit",
+      exportGeoJSON: "GeoJSON",
+      exportWKT: "WKT",
+      copyLink: "Copy link",
+      rename: "Rename",
+      delete: "Delete",
+      linkCopied: "Link copied.",
+      linkCopyFailed: "Could not copy automatically; use the link field.",
+      renamePrompt: "New name:",
+      placeRectangle: "Place rectangle",
+      placePolygon: "Place polygon",
+      areaWithinLimit: (areaKm2, level, maxAreaKm2) => `Area: ${areaKm2} km\xB2 \u2014 within the level ${level} limit (max ${maxAreaKm2} km\xB2)`,
+      areaExceedsLimit: (areaKm2, level, maxAreaKm2) => `Area: ${areaKm2} km\xB2 \u2014 exceeds the level ${level} limit (max ${maxAreaKm2} km\xB2)`,
+      drawingCancelled: "Drawing cancelled.",
+      placementFailed: (message) => `Could not place the shape: ${message}. Try zooming in.`,
+      polygonEditHelp: (key) => `Polygon editing: click the edge to add a point \xB7 click the interior to drag the shape \xB7 click a vertex to drag it \xB7 hover a vertex and press "${key}" to delete it.`,
+      deleteShortcutLabel: "Delete-vertex key:",
+      deleteShortcutSaved: (key) => `Delete shortcut updated to "${key}".`,
+      invalidShortcutKey: "Enter a single key.",
+      confirmSaveChanges: (nombre) => `There are unsaved changes in "${nombre}". Save before continuing? Cancel discards them.`
+    }
+  };
+  var DEFAULT_LANG = "es";
+  function resolveLang(rawLocale) {
+    const lang = String(rawLocale).split("-")[0];
+    return DICTIONARIES[lang] ? lang : DEFAULT_LANG;
+  }
+  var activeLang = DEFAULT_LANG;
+  function initI18n(sdk) {
+    try {
+      const { localeCode } = sdk.Settings.getLocale();
+      activeLang = resolveLang(localeCode);
+    } catch (error) {
+      console.warn("WME Area Manager: no se pudo detectar el idioma de WME; se usa espa\xF1ol por defecto.", error);
+      activeLang = DEFAULT_LANG;
+    }
+  }
+  function t(key, ...args) {
+    const entry = DICTIONARIES[activeLang]?.[key] ?? DICTIONARIES[DEFAULT_LANG][key];
+    return typeof entry === "function" ? entry(...args) : entry;
+  }
+  function formatAreaLabel(areaKm2, maxAreaKm2) {
+    const locale = activeLang === "es" ? "es-ES" : "en-US";
+    const percent = areaKm2 / maxAreaKm2 * 100;
+    const area2 = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(areaKm2);
+    const pct = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(percent);
+    return `${area2} (${pct}%)`;
+  }
+
   // src/polygon-layer.js
   var LAYER_NAME = "wme-area-manager-polygon";
   var MIN_POINTS = 3;
@@ -416,6 +516,9 @@
       this.sdk = sdk;
       safeAddLayer(sdk, {
         layerName: LAYER_NAME,
+        styleContext: {
+          label: (context) => context?.feature?.properties?.label
+        },
         styleRules: [
           {
             predicate: (props) => props.role === "fill" && props.valid,
@@ -440,6 +543,34 @@
           {
             predicate: (props) => props.role === "vertex" && props.dragging,
             style: { fillColor: "#FFDC00", fillOpacity: 1, pointRadius: 8 }
+          },
+          {
+            // pointRadius: 0 keeps this feature text-only: no visible marker,
+            // no hit target competing with the fill's whole-shape drag. Same
+            // green/red as the fill/outline so the label's color echoes
+            // validity; the white outline keeps it readable over either.
+            predicate: (props) => props.role === "label" && props.valid,
+            style: {
+              label: "${label}",
+              fontColor: "#2ECC40",
+              fontWeight: "bold",
+              fontSize: 13,
+              labelOutlineColor: "#FFFFFF",
+              labelOutlineWidth: 3,
+              pointRadius: 0
+            }
+          },
+          {
+            predicate: (props) => props.role === "label" && !props.valid,
+            style: {
+              label: "${label}",
+              fontColor: "#FF4136",
+              fontWeight: "bold",
+              fontSize: 13,
+              labelOutlineColor: "#FFFFFF",
+              labelOutlineWidth: 3,
+              pointRadius: 0
+            }
           }
         ]
       });
@@ -463,16 +594,19 @@
     }
     /**
      * @param {GeoJSON.Polygon} polygon - as returned by sdk.Map.drawPolygon().
-     * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void, editable?: boolean }} handlers
+     * @param {{ onChange: (polygon: GeoJSON.Polygon | null, info?: { error: string }) => void, editable?: boolean, maxAreaKm2?: number }} handlers
      *   `editable: false` locks the shape to whole-figure translation only —
      *   no vertex markers, no add-on-outline-click, no delete shortcut. Used
      *   for rectangles, which must stay rigid (fixed by the editor level);
-     *   free-form polygons keep the default `true`.
+     *   free-form polygons keep the default `true`. `maxAreaKm2` (the current
+     *   rank's area limit) drives the live area/percentage label, only shown
+     *   while `editable`.
      */
-    draw(polygon, { onChange, editable = true }) {
+    draw(polygon, { onChange, editable = true, maxAreaKm2 }) {
       this.coordinates = polygon.coordinates[0].slice(0, -1);
       this.onChange = onChange;
       this.editable = editable;
+      this.maxAreaKm2 = maxAreaKm2;
       this.drag = null;
       this.vertexDragIndex = null;
       this.hoveredVertexIndex = null;
@@ -540,12 +674,30 @@
           type: "Feature",
           geometry: { type: "Point", coordinates: coordinate },
           properties: { role: "vertex", pointIndex: i, dragging: i === this.vertexDragIndex }
-        })) : []
+        })) : [],
+        // Recomputed on every redraw -- including per-frame during a drag
+        // (_onMouseMove below) -- so the readout tracks the shape live, not
+        // just on drop like the sidebar's onChange.
+        ...this.editable && this.maxAreaKm2 != null ? [this._buildLabelFeature()] : []
       ];
       for (const feature2 of features) {
         safeAddFeature(this.sdk, LAYER_NAME, feature2);
         this.featureIds.push(feature2.id);
       }
+    }
+    _buildLabelFeature() {
+      const { lon, lat } = polygonCenter(this.coordinates);
+      const areaKm2 = polygonAreaKm2({ type: "Polygon", coordinates: [buildRing(this.coordinates)] });
+      return {
+        id: "label",
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [lon, lat] },
+        properties: {
+          role: "label",
+          valid: areaKm2 <= this.maxAreaKm2,
+          label: formatAreaLabel(areaKm2, this.maxAreaKm2)
+        }
+      };
     }
     _onFeatureClicked({ featureId, layerName }) {
       if (layerName !== LAYER_NAME) return;
@@ -713,101 +865,8 @@
     persist(rectangles);
   }
 
-  // src/i18n.js
-  var DICTIONARIES = {
-    es: {
-      tabLabel: "Area Manager",
-      shapeRectangle: "Rect\xE1ngulo",
-      shapePolygon: "Pol\xEDgono",
-      namePlaceholder: "Nombre",
-      save: "Guardar",
-      clearDrawing: "Limpiar dibujo",
-      nameRequired: "El nombre es obligatorio para guardar.",
-      nothingToSave: "No hay ninguna figura para guardar.",
-      saved: (nombre) => `Guardado "${nombre}".`,
-      noSavedShapes: "No hay figuras guardadas.",
-      sectionNewItem: "Nuevo item",
-      sectionCurrentShape: "Figura actual",
-      sectionSaved: "Guardadas",
-      edit: "Editar",
-      exportGeoJSON: "GeoJSON",
-      exportWKT: "WKT",
-      copyLink: "Copiar enlace",
-      rename: "Renombrar",
-      delete: "Eliminar",
-      linkCopied: "Enlace copiado.",
-      linkCopyFailed: "No se pudo copiar autom\xE1ticamente; usa el campo de enlace.",
-      renamePrompt: "Nuevo nombre:",
-      placeRectangle: "Colocar rect\xE1ngulo",
-      placePolygon: "Colocar pol\xEDgono",
-      areaWithinLimit: (areaKm2, level, maxAreaKm2) => `\xC1rea: ${areaKm2} km\xB2 \u2014 dentro del l\xEDmite del nivel ${level} (m\xE1x. ${maxAreaKm2} km\xB2)`,
-      areaExceedsLimit: (areaKm2, level, maxAreaKm2) => `\xC1rea: ${areaKm2} km\xB2 \u2014 supera el l\xEDmite del nivel ${level} (m\xE1x. ${maxAreaKm2} km\xB2)`,
-      drawingCancelled: "Dibujo cancelado.",
-      placementFailed: (message) => `No se pudo colocar la figura: ${message}. Prueba a acercar el zoom.`,
-      polygonEditHelp: (key) => `Edici\xF3n del pol\xEDgono: clic en el borde a\xF1ade un punto \xB7 clic en el interior arrastra la figura \xB7 clic en un v\xE9rtice lo arrastra \xB7 pasar el rat\xF3n por un v\xE9rtice y pulsar "${key}" lo borra.`,
-      deleteShortcutLabel: "Tecla para borrar v\xE9rtice:",
-      deleteShortcutSaved: (key) => `Atajo de borrado actualizado a "${key}".`,
-      invalidShortcutKey: "Introduce una \xFAnica tecla.",
-      confirmSaveChanges: (nombre) => `Hay cambios sin guardar en "${nombre}". \xBFGuardar antes de continuar? Cancelar los descarta.`
-    },
-    en: {
-      tabLabel: "Area Manager",
-      shapeRectangle: "Rectangle",
-      shapePolygon: "Polygon",
-      namePlaceholder: "Name",
-      save: "Save",
-      clearDrawing: "Clear drawing",
-      nameRequired: "A name is required to save.",
-      nothingToSave: "There is no shape to save.",
-      saved: (nombre) => `Saved "${nombre}".`,
-      noSavedShapes: "No saved shapes.",
-      sectionNewItem: "New item",
-      sectionCurrentShape: "Current shape",
-      sectionSaved: "Saved",
-      edit: "Edit",
-      exportGeoJSON: "GeoJSON",
-      exportWKT: "WKT",
-      copyLink: "Copy link",
-      rename: "Rename",
-      delete: "Delete",
-      linkCopied: "Link copied.",
-      linkCopyFailed: "Could not copy automatically; use the link field.",
-      renamePrompt: "New name:",
-      placeRectangle: "Place rectangle",
-      placePolygon: "Place polygon",
-      areaWithinLimit: (areaKm2, level, maxAreaKm2) => `Area: ${areaKm2} km\xB2 \u2014 within the level ${level} limit (max ${maxAreaKm2} km\xB2)`,
-      areaExceedsLimit: (areaKm2, level, maxAreaKm2) => `Area: ${areaKm2} km\xB2 \u2014 exceeds the level ${level} limit (max ${maxAreaKm2} km\xB2)`,
-      drawingCancelled: "Drawing cancelled.",
-      placementFailed: (message) => `Could not place the shape: ${message}. Try zooming in.`,
-      polygonEditHelp: (key) => `Polygon editing: click the edge to add a point \xB7 click the interior to drag the shape \xB7 click a vertex to drag it \xB7 hover a vertex and press "${key}" to delete it.`,
-      deleteShortcutLabel: "Delete-vertex key:",
-      deleteShortcutSaved: (key) => `Delete shortcut updated to "${key}".`,
-      invalidShortcutKey: "Enter a single key.",
-      confirmSaveChanges: (nombre) => `There are unsaved changes in "${nombre}". Save before continuing? Cancel discards them.`
-    }
-  };
-  var DEFAULT_LANG = "es";
-  function resolveLang(rawLocale) {
-    const lang = String(rawLocale).split("-")[0];
-    return DICTIONARIES[lang] ? lang : DEFAULT_LANG;
-  }
-  var activeLang = DEFAULT_LANG;
-  function initI18n(sdk) {
-    try {
-      const { localeCode } = sdk.Settings.getLocale();
-      activeLang = resolveLang(localeCode);
-    } catch (error) {
-      console.warn("WME Area Manager: no se pudo detectar el idioma de WME; se usa espa\xF1ol por defecto.", error);
-      activeLang = DEFAULT_LANG;
-    }
-  }
-  function t(key, ...args) {
-    const entry = DICTIONARIES[activeLang]?.[key] ?? DICTIONARIES[DEFAULT_LANG][key];
-    return typeof entry === "function" ? entry(...args) : entry;
-  }
-
   // package.json
-  var version = "0.12.1";
+  var version = "0.13.0";
 
   // src/sidebar.js
   var ASPECT_RATIOS = [
@@ -1049,7 +1108,13 @@
           currentEntry = { ...entry, env: DEFAULT_ENV };
           savedSnapshot = JSON.stringify(entry.geometry);
           nameInput.value = entry.nombre;
-          polygonLayer.draw(entry.geometry, { onChange: updatePolygonStatus, editable: entry.tipo !== "rectangle" });
+          const editUserInfo = sdk.State.getUserInfo();
+          const editMaxAreaKm2 = editUserInfo ? getConfigForRank(editUserInfo.rank).areaKm2 : void 0;
+          polygonLayer.draw(entry.geometry, {
+            onChange: updatePolygonStatus,
+            editable: entry.tipo !== "rectangle",
+            maxAreaKm2: editMaxAreaKm2
+          });
           updatePolygonStatus(entry.geometry);
           sdk.Map.zoomToExtent({ bbox: geometryBbox(entry.geometry) });
           activeLayer = polygonLayer;
@@ -1130,6 +1195,9 @@
         autofillName();
       }
       async function placePolygon() {
+        const userInfo = sdk.State.getUserInfo();
+        if (!userInfo) return;
+        const { areaKm2: maxAreaKm2 } = getConfigForRank(userInfo.rank);
         const polygon = await sdk.Map.drawPolygon();
         if (!polygon) {
           statusDiv.innerText = t("drawingCancelled");
@@ -1138,7 +1206,7 @@
         currentEntry = null;
         savedSnapshot = null;
         updateCurrentEntry({ tipo: "polygon" });
-        polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true });
+        polygonLayer.draw(polygon, { onChange: updatePolygonStatus, editable: true, maxAreaKm2 });
         activeLayer = polygonLayer;
         setEditingActive(true);
         updatePolygonStatus(polygon);

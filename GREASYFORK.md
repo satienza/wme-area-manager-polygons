@@ -7,7 +7,7 @@ WME Area Manager draws a rectangle or a free-form polygon centered on the point(
 ## Features
 
 - Rectangle mode: one click on the map places a rectangle centered on that point, sized from your editor rank.
-- Polygon mode: trace a free-form polygon vertex by vertex; area is validated live against your level's limit.
+- Polygon mode: trace a free-form polygon vertex by vertex; area is validated live against your level's limit, with a label on the shape showing the current area and percentage of the limit.
 - Save shapes with a name; reload, rename, delete, or export them (GeoJSON/WKT) from the sidebar panel.
 - Copy a direct link to the center point (`lat`/`lon`/`zoomLevel`).
 - No changes are ever saved to the live Waze map — it's a visual/reference layer only.
