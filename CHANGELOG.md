@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.14.0 — Hide vertices/label during whole-shape drag
+
+- While dragging a whole shape (rectangle or free-form polygon), vertices and the area/percentage label (#13) are now hidden and replaced by a drag-indicator icon at the shape's center. Fill and outline switch to light gray while dragging (internal toggle, on by default) instead of the usual green/red validity color.
+
+Closes [#15](https://forgejo.petricor.net/Petricor/wme-area-manager/issues/15).
+
 ## 0.13.0 — Live area/limit label on the polygon being edited
 
 - Editing a free-form polygon now shows a label centered on the shape with its current area and percentage of the level's limit (e.g. "119,1 (98.02%)"), recalculated live on every vertex change — including while dragging, not just on drop. Text color follows validity (green within the limit, red over it), matching the fill/outline.
