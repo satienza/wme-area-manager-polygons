@@ -53,6 +53,21 @@ const MIN_POINTS = 3;
 const SHORTCUT_ID = 'wme-area-manager-delete-vertex';
 export const DEFAULT_DELETE_SHORTCUT_KEY = 'k';
 
+// Whole-shape drag (issue #15): recolor fill/outline to gray while dragging,
+// instead of the usual green/red validity color. Plain internal switch for
+// now; a per-user config option is out of scope for this issue.
+const GRAY_ON_DRAG = true;
+const DRAG_COLOR = '#AAAAAA';
+// Font Awesome "arrows" (FA4/5) glyph, renamed "up-down-left-right" in FA6 —
+// same codepoint across versions. WME already serves Font Awesome on the
+// editor page (see buildIcon() in sidebar.js), so no new dependency. Unlike
+// that DOM-based `<i class="fa fa-...">` usage, this renders the glyph as
+// map-layer label text (same mechanism as the area label above), which has
+// no prior art here — verify against the live editor and adjust if the
+// glyph/font don't render as expected.
+const DRAG_ICON_GLYPH = '';
+const DRAG_ICON_FONT_FAMILY = 'FontAwesome';
+
 function buildRing(coordinates) {
   return [...coordinates, coordinates[0]];
 }
@@ -71,20 +86,28 @@ export class PolygonLayer {
       },
       styleRules: [
         {
-          predicate: (props) => props.role === 'fill' && props.valid,
+          predicate: (props) => props.role === 'fill' && (!props.shapeDragging || !GRAY_ON_DRAG) && props.valid,
           style: { fill: true, fillColor: '#2ECC40', fillOpacity: 0.15 },
         },
         {
-          predicate: (props) => props.role === 'fill' && !props.valid,
+          predicate: (props) => props.role === 'fill' && (!props.shapeDragging || !GRAY_ON_DRAG) && !props.valid,
           style: { fill: true, fillColor: '#FF4136', fillOpacity: 0.15 },
         },
         {
-          predicate: (props) => props.role === 'outline' && props.valid,
+          predicate: (props) => props.role === 'fill' && props.shapeDragging && GRAY_ON_DRAG,
+          style: { fill: true, fillColor: DRAG_COLOR, fillOpacity: 0.15 },
+        },
+        {
+          predicate: (props) => props.role === 'outline' && (!props.shapeDragging || !GRAY_ON_DRAG) && props.valid,
           style: { fill: false, strokeColor: '#2ECC40', strokeWidth: 3 },
         },
         {
-          predicate: (props) => props.role === 'outline' && !props.valid,
+          predicate: (props) => props.role === 'outline' && (!props.shapeDragging || !GRAY_ON_DRAG) && !props.valid,
           style: { fill: false, strokeColor: '#FF4136', strokeWidth: 3 },
+        },
+        {
+          predicate: (props) => props.role === 'outline' && props.shapeDragging && GRAY_ON_DRAG,
+          style: { fill: false, strokeColor: DRAG_COLOR, strokeWidth: 3 },
         },
         {
           predicate: (props) => props.role === 'vertex' && !props.dragging,
@@ -119,6 +142,19 @@ export class PolygonLayer {
             fontSize: 13,
             labelOutlineColor: '#FFFFFF',
             labelOutlineWidth: 3,
+            pointRadius: 0,
+          },
+        },
+        {
+          // Shown at the shape's center in place of the vertices/label,
+          // while a whole-shape drag is active (both rectangles and free
+          // polygons — see _redraw()). Text-label mechanism, like above.
+          predicate: (props) => props.role === 'icon',
+          style: {
+            label: DRAG_ICON_GLYPH,
+            fontFamily: DRAG_ICON_FONT_FAMILY,
+            fontColor: '#555555',
+            fontSize: 30,
             pointRadius: 0,
           },
         },
@@ -210,13 +246,14 @@ export class PolygonLayer {
   }
 
   setValid(valid) {
+    const shapeDragging = !!this.drag;
     for (const role of ['fill', 'outline']) {
       safeRemoveFeature(this.sdk, LAYER_NAME, role);
       safeAddFeature(this.sdk, LAYER_NAME, {
         id: role,
         type: 'Feature',
         geometry: { type: 'Polygon', coordinates: [buildRing(this.coordinates)] },
-        properties: { role, valid },
+        properties: { role, valid, shapeDragging },
       });
     }
   }
@@ -230,20 +267,23 @@ export class PolygonLayer {
 
   _redraw() {
     this.clear();
+    const shapeDragging = !!this.drag;
     const features = [
       {
         id: 'fill',
         type: 'Feature',
         geometry: { type: 'Polygon', coordinates: [buildRing(this.coordinates)] },
-        properties: { role: 'fill', valid: true },
+        properties: { role: 'fill', valid: true, shapeDragging },
       },
       {
         id: 'outline',
         type: 'Feature',
         geometry: { type: 'Polygon', coordinates: [buildRing(this.coordinates)] },
-        properties: { role: 'outline', valid: true },
+        properties: { role: 'outline', valid: true, shapeDragging },
       },
-      ...(this.editable
+      // Hidden while the whole shape is being dragged (issue #15): see the
+      // drag-icon feature below, shown in their place.
+      ...(this.editable && !shapeDragging
         ? this.coordinates.map((coordinate, i) => ({
             id: `vertex-${i}`,
             type: 'Feature',
@@ -254,7 +294,11 @@ export class PolygonLayer {
       // Recomputed on every redraw -- including per-frame during a drag
       // (_onMouseMove below) -- so the readout tracks the shape live, not
       // just on drop like the sidebar's onChange.
-      ...(this.editable && this.maxAreaKm2 != null ? [this._buildLabelFeature()] : []),
+      ...(this.editable && this.maxAreaKm2 != null && !shapeDragging ? [this._buildLabelFeature()] : []),
+      // Drag-active indicator (issue #15): replaces vertices/label above,
+      // shown for both rectangles and free polygons since a whole-shape
+      // drag isn't gated by `editable`.
+      ...(shapeDragging ? [this._buildDragIconFeature()] : []),
     ];
     for (const feature of features) {
       safeAddFeature(this.sdk, LAYER_NAME, feature);
@@ -277,6 +321,16 @@ export class PolygonLayer {
     };
   }
 
+  _buildDragIconFeature() {
+    const { lon, lat } = polygonCenter(this.coordinates);
+    return {
+      id: 'drag-icon',
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [lon, lat] },
+      properties: { role: 'icon' },
+    };
+  }
+
   _onFeatureClicked({ featureId, layerName }) {
     if (layerName !== LAYER_NAME) return;
     if (this.drag) return; // the click that drops a whole-shape drag isn't another action
@@ -286,6 +340,7 @@ export class PolygonLayer {
       if (this.coordinates.length < MIN_POINTS) return;
       this.drag = { anchor: { ...this._lastMouse }, base: this.coordinates };
       this._suppressMouseDown = true;
+      this._redraw(); // hide vertices/label, show the drag icon right away
       return;
     }
 
@@ -359,6 +414,7 @@ export class PolygonLayer {
     }
     if (this.drag) {
       this.drag = null;
+      this._redraw(); // restore vertices/label and drop the drag icon
       this.onChange?.({ type: 'Polygon', coordinates: [buildRing(this.coordinates)] });
     }
   }

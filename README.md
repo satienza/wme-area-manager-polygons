@@ -11,7 +11,7 @@ Ongoing work (features, bugs) is tracked via issues and pull requests in the [Fo
 
 ## Status
 
-Feature-complete, published userscript (v0.13.0 — see `CHANGELOG.md` for details): rectangle and free-form polygon drawing, area validation by editor level with a live area/limit label while editing a polygon, save/load/edit/export of named shapes, i18n, and Greasyfork packaging.
+Feature-complete, published userscript (v0.14.0 — see `CHANGELOG.md` for details): rectangle and free-form polygon drawing, area validation by editor level with a live area/limit label while editing a polygon (hidden during a whole-shape drag in favor of a drag-indicator icon and gray fill/outline), save/load/edit/export of named shapes, i18n, and Greasyfork packaging.
 
 ## Structure
 
