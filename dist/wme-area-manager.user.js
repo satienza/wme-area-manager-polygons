@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.14.0
+// @version      0.14.1
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -434,7 +434,7 @@
       deleteShortcutLabel: "Tecla para borrar v\xE9rtice:",
       deleteShortcutSaved: (key) => `Atajo de borrado actualizado a "${key}".`,
       invalidShortcutKey: "Introduce una \xFAnica tecla.",
-      confirmSaveChanges: (nombre) => `Hay cambios sin guardar en "${nombre}". \xBFGuardar antes de continuar? Cancelar los descarta.`
+      confirmDiscardChanges: (nombre) => `Hay cambios sin guardar en "${nombre}". Aceptar contin\xFAa y los pierde; cancelar mantiene la edici\xF3n.`
     },
     en: {
       tabLabel: "Area Manager",
@@ -469,7 +469,7 @@
       deleteShortcutLabel: "Delete-vertex key:",
       deleteShortcutSaved: (key) => `Delete shortcut updated to "${key}".`,
       invalidShortcutKey: "Enter a single key.",
-      confirmSaveChanges: (nombre) => `There are unsaved changes in "${nombre}". Save before continuing? Cancel discards them.`
+      confirmDiscardChanges: (nombre) => `There are unsaved changes in "${nombre}". OK continues and discards them; Cancel keeps editing.`
     }
   };
   var DEFAULT_LANG = "es";
@@ -910,7 +910,7 @@
   }
 
   // package.json
-  var version = "0.14.0";
+  var version = "0.14.1";
 
   // src/sidebar.js
   var ASPECT_RATIOS = [
@@ -1065,6 +1065,10 @@
       function isDirty() {
         return currentEntry != null && JSON.stringify(currentEntry.geometry) !== savedSnapshot;
       }
+      function confirmDiscardChanges() {
+        if (activeLayer !== polygonLayer || !isDirty()) return true;
+        return confirm(t("confirmDiscardChanges", currentEntry.nombre ?? nameInput.value));
+      }
       function setEditingActive(active) {
         newItemSection.classList.toggle("wme-am-section--disabled", active);
       }
@@ -1097,7 +1101,10 @@
         saveCurrent(nombre);
         statusDiv.innerText = t("saved", nombre);
       });
-      clearButton.addEventListener("click", clearCurrentShape);
+      clearButton.addEventListener("click", () => {
+        if (!confirmDiscardChanges()) return;
+        clearCurrentShape();
+      });
       function renderList() {
         listContainer.innerHTML = "";
         const rectangles = loadRectangles();
@@ -1145,10 +1152,7 @@
         }
         addAction(actionsRow1, t("edit"), () => {
           if (currentEntry?.id === entry.id) return;
-          if (activeLayer === polygonLayer && isDirty()) {
-            const guardar = confirm(t("confirmSaveChanges", currentEntry.nombre ?? nameInput.value));
-            if (guardar) saveCurrent(nameInput.value.trim() || currentEntry.nombre);
-          }
+          if (!confirmDiscardChanges()) return;
           currentEntry = { ...entry, env: DEFAULT_ENV };
           savedSnapshot = JSON.stringify(entry.geometry);
           nameInput.value = entry.nombre;

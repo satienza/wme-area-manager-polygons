@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.14.1 — Confirm before losing unsaved changes on "Edit" or "Clear drawing"
+
+- "Edit" (switching to another saved item) and "Clear drawing" now warn before discarding unsaved changes in the shape being edited: OK continues with the requested action and discards them; Cancel aborts the action and keeps the current edit untouched.
+- Replaces the previous "Edit" dialog, whose Cancel didn't actually stop the switch — it only skipped saving, with no way to abort. There's no more implicit save option; changes must be saved explicitly via "Save".
+
+Fixes [#18](https://forgejo.petricor.net/Petricor/wme-area-manager/issues/18).
+
 ## 0.14.0 — Hide vertices/label during whole-shape drag
 
 - While dragging a whole shape (rectangle or free-form polygon), vertices and the area/percentage label (#13) are now hidden and replaced by a drag-indicator icon at the shape's center. Fill and outline switch to light gray while dragging (internal toggle, on by default) instead of the usual green/red validity color.
