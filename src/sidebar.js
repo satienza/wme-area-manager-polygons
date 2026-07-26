@@ -230,6 +230,20 @@ export function initSidebar({ sdk, polygonLayer }) {
       return currentEntry != null && JSON.stringify(currentEntry.geometry) !== savedSnapshot;
     }
 
+    // Shared guard for actions that would discard the shape currently being
+    // edited ("Editar" on another entry, "Limpiar dibujo"): warns before
+    // losing unsaved changes and lets the user abort, instead of discarding
+    // silently. Returns whether the caller should proceed with its action.
+    function confirmDiscardChanges() {
+      if (activeLayer !== polygonLayer || !isDirty()) return true;
+      return confirm(t('confirmDiscardChanges', currentEntry.nombre ?? nameInput.value));
+    }
+
+    // Disables (opacity + pointer-events: none, see .wme-am-section--disabled)
+    // the "Nuevo item" section — including "Colocar rectángulo/polígono" —
+    // while an edit is active. That's why those placement buttons don't need
+    // their own confirmDiscardChanges guard: they're unreachable until the
+    // active edit ends.
     function setEditingActive(active) {
       newItemSection.classList.toggle('wme-am-section--disabled', active);
     }
@@ -270,7 +284,10 @@ export function initSidebar({ sdk, polygonLayer }) {
       statusDiv.innerText = t('saved', nombre);
     });
 
-    clearButton.addEventListener('click', clearCurrentShape);
+    clearButton.addEventListener('click', () => {
+      if (!confirmDiscardChanges()) return;
+      clearCurrentShape();
+    });
 
     function renderList() {
       listContainer.innerHTML = '';
@@ -329,10 +346,7 @@ export function initSidebar({ sdk, polygonLayer }) {
       // Row 1: Edit, Rename, Delete. Row 2: Link, GeoJson, WKT.
       addAction(actionsRow1, t('edit'), () => {
         if (currentEntry?.id === entry.id) return; // already the active item
-        if (activeLayer === polygonLayer && isDirty()) {
-          const guardar = confirm(t('confirmSaveChanges', currentEntry.nombre ?? nameInput.value));
-          if (guardar) saveCurrent(nameInput.value.trim() || currentEntry.nombre);
-        }
+        if (!confirmDiscardChanges()) return;
         currentEntry = { ...entry, env: DEFAULT_ENV };
         savedSnapshot = JSON.stringify(entry.geometry);
         nameInput.value = entry.nombre;

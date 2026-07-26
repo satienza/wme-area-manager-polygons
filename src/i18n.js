@@ -41,7 +41,8 @@ const DICTIONARIES = {
     deleteShortcutLabel: 'Tecla para borrar vértice:',
     deleteShortcutSaved: (key) => `Atajo de borrado actualizado a "${key}".`,
     invalidShortcutKey: 'Introduce una única tecla.',
-    confirmSaveChanges: (nombre) => `Hay cambios sin guardar en "${nombre}". ¿Guardar antes de continuar? Cancelar los descarta.`,
+    confirmDiscardChanges: (nombre) =>
+      `Hay cambios sin guardar en "${nombre}". Aceptar continúa y los pierde; cancelar mantiene la edición.`,
   },
   en: {
     tabLabel: 'Area Manager',
@@ -80,7 +81,8 @@ const DICTIONARIES = {
     deleteShortcutLabel: 'Delete-vertex key:',
     deleteShortcutSaved: (key) => `Delete shortcut updated to "${key}".`,
     invalidShortcutKey: 'Enter a single key.',
-    confirmSaveChanges: (nombre) => `There are unsaved changes in "${nombre}". Save before continuing? Cancel discards them.`,
+    confirmDiscardChanges: (nombre) =>
+      `There are unsaved changes in "${nombre}". OK continues and discards them; Cancel keeps editing.`,
   },
 };
 
