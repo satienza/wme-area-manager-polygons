@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here, one entry per released version. Versions follow `package.json` (single source of truth, injected into the userscript header at build time).
 
+## 0.15.0 — Copy to clipboard on Link/WKT/GeoJSON
+
+- The "Enlace", "WKT" and "GeoJSON" buttons on each saved entry now copy their result directly to the clipboard, showing a notice next to the buttons that clears after a couple of seconds. If the clipboard write fails, a prompt dialog opens pre-filled with the text so it can be copied manually.
+- Removed the URL field and export textarea from the "Forma actual" section — both are unused now that all three buttons copy directly. The URL field's live autofill (while placing/editing a shape, before saving) is also removed; to get a link, save the shape first and use the entry's "Enlace" button.
+
+Closes [#20](https://forgejo.petricor.net/Petricor/wme-area-manager/issues/20).
+
 ## 0.14.1 — Confirm before losing unsaved changes on "Edit" or "Clear drawing"
 
 - "Edit" (switching to another saved item) and "Clear drawing" now warn before discarding unsaved changes in the shape being edited: OK continues with the requested action and discards them; Cancel aborts the action and keeps the current edit untouched.
