@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WME Area Manager
 // @namespace    https://greasyfork.org/en/scripts/freakyman-wme-area-manager-polygons
-// @version      0.14.1
+// @version      0.15.0
 // @description  Draws area rectangles in WME based on the editor's level, with a link to the center and named rectangle saving.
 // @author       freakyman
 // @match        https://www.waze.com/*/editor*
@@ -422,7 +422,9 @@
       rename: "Renombrar",
       delete: "Eliminar",
       linkCopied: "Enlace copiado.",
-      linkCopyFailed: "No se pudo copiar autom\xE1ticamente; usa el campo de enlace.",
+      geoJSONCopied: "GeoJSON copiado.",
+      wktCopied: "WKT copiado.",
+      copyFailed: "No se pudo copiar autom\xE1ticamente. Copia el texto manualmente:",
       renamePrompt: "Nuevo nombre:",
       placeRectangle: "Colocar rect\xE1ngulo",
       placePolygon: "Colocar pol\xEDgono",
@@ -457,7 +459,9 @@
       rename: "Rename",
       delete: "Delete",
       linkCopied: "Link copied.",
-      linkCopyFailed: "Could not copy automatically; use the link field.",
+      geoJSONCopied: "GeoJSON copied.",
+      wktCopied: "WKT copied.",
+      copyFailed: "Could not copy automatically. Copy the text manually:",
       renamePrompt: "New name:",
       placeRectangle: "Place rectangle",
       placePolygon: "Place polygon",
@@ -910,7 +914,7 @@
   }
 
   // package.json
-  var version = "0.14.1";
+  var version = "0.15.0";
 
   // src/sidebar.js
   var ASPECT_RATIOS = [
@@ -953,6 +957,7 @@
       .wme-am-entry-table td { border: 1px solid #ccc; padding: 2px 6px; text-align: left; }
       .wme-am-entry-table tr:first-child td { font-weight: bold; }
       .wme-am-actions-row { display: flex; gap: 4px; margin-bottom: 4px; }
+      .wme-am-row-notice { font-size: 0.85em; color: #060; }
       .wme-am-section--disabled { opacity: 0.5; pointer-events: none; }
     `;
       tabPane.appendChild(style);
@@ -1029,11 +1034,6 @@
       newItemSection.appendChild(placeButton);
       const statusDiv = document.createElement("div");
       currentShapeSection.appendChild(statusDiv);
-      const linkInput = document.createElement("input");
-      linkInput.type = "text";
-      linkInput.readOnly = true;
-      linkInput.style.width = "100%";
-      currentShapeSection.appendChild(linkInput);
       const nameInput = document.createElement("input");
       nameInput.type = "text";
       nameInput.placeholder = t("namePlaceholder");
@@ -1046,11 +1046,6 @@
       const clearButton = document.createElement("button");
       clearButton.innerText = t("clearDrawing");
       currentShapeSection.appendChild(clearButton);
-      const exportOutput = document.createElement("textarea");
-      exportOutput.readOnly = true;
-      exportOutput.rows = 3;
-      exportOutput.style.width = "100%";
-      currentShapeSection.appendChild(exportOutput);
       const listContainer = document.createElement("div");
       savedSection.appendChild(listContainer);
       let currentEntry = null;
@@ -1077,9 +1072,7 @@
         activeLayer = null;
         currentEntry = null;
         savedSnapshot = null;
-        linkInput.value = "";
         nameInput.value = "";
-        exportOutput.value = "";
         statusDiv.innerText = "";
         setEditingActive(false);
       }
@@ -1143,6 +1136,22 @@
         const actionsRow2 = document.createElement("div");
         actionsRow2.className = "wme-am-actions-row";
         row.appendChild(actionsRow2);
+        const rowNotice = document.createElement("div");
+        rowNotice.className = "wme-am-row-notice";
+        row.appendChild(rowNotice);
+        let noticeTimer = null;
+        function copyToClipboard(text, successKey) {
+          navigator.clipboard.writeText(text).then(
+            () => {
+              clearTimeout(noticeTimer);
+              rowNotice.textContent = t(successKey);
+              noticeTimer = setTimeout(() => {
+                rowNotice.textContent = "";
+              }, 2e3);
+            },
+            () => prompt(t("copyFailed"), text)
+          );
+        }
         function addAction(container, label, onClick, iconName) {
           const button = document.createElement("button");
           if (iconName) button.appendChild(buildIcon(iconName));
@@ -1181,21 +1190,13 @@
         }, "trash");
         addAction(actionsRow2, t("copyLink"), () => {
           const enlace = buildEditorLink({ lat: entry.lat, lon: entry.lon, zoom: entry.zoom, env: entry.env });
-          navigator.clipboard.writeText(enlace).then(
-            () => {
-              statusDiv.innerText = t("linkCopied");
-            },
-            () => {
-              linkInput.value = enlace;
-              statusDiv.innerText = t("linkCopyFailed");
-            }
-          );
+          copyToClipboard(enlace, "linkCopied");
         }, "link");
         addAction(actionsRow2, t("exportGeoJSON"), () => {
-          exportOutput.value = JSON.stringify(toGeoJSONFeature(entry));
+          copyToClipboard(JSON.stringify(toGeoJSONFeature(entry)), "geoJSONCopied");
         });
         addAction(actionsRow2, t("exportWKT"), () => {
-          exportOutput.value = toWKT(entry.geometry);
+          copyToClipboard(toWKT(entry.geometry), "wktCopied");
         });
         return row;
       }
@@ -1223,7 +1224,6 @@
         polygonLayer.setValid(valid);
         statusDiv.innerText = valid ? t("areaWithinLimit", areaKm2.toFixed(2), level, maxAreaKm2) : t("areaExceedsLimit", areaKm2.toFixed(2), level, maxAreaKm2);
         const { lon, lat } = polygonCenter(polygon.coordinates[0].slice(0, -1));
-        linkInput.value = buildEditorLink({ lat, lon, zoom });
         updateCurrentEntry({ geometry: polygon, lat, lon, nivel: level, zoom, area_km2: areaKm2 });
       }
       async function placeRectangle() {

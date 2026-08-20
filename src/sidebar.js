@@ -85,6 +85,7 @@ export function initSidebar({ sdk, polygonLayer }) {
       .wme-am-entry-table td { border: 1px solid #ccc; padding: 2px 6px; text-align: left; }
       .wme-am-entry-table tr:first-child td { font-weight: bold; }
       .wme-am-actions-row { display: flex; gap: 4px; margin-bottom: 4px; }
+      .wme-am-row-notice { font-size: 0.85em; color: #060; }
       .wme-am-section--disabled { opacity: 0.5; pointer-events: none; }
     `;
     tabPane.appendChild(style);
@@ -175,12 +176,6 @@ export function initSidebar({ sdk, polygonLayer }) {
     const statusDiv = document.createElement('div');
     currentShapeSection.appendChild(statusDiv);
 
-    const linkInput = document.createElement('input');
-    linkInput.type = 'text';
-    linkInput.readOnly = true;
-    linkInput.style.width = '100%';
-    currentShapeSection.appendChild(linkInput);
-
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.placeholder = t('namePlaceholder');
@@ -195,12 +190,6 @@ export function initSidebar({ sdk, polygonLayer }) {
     const clearButton = document.createElement('button');
     clearButton.innerText = t('clearDrawing');
     currentShapeSection.appendChild(clearButton);
-
-    const exportOutput = document.createElement('textarea');
-    exportOutput.readOnly = true;
-    exportOutput.rows = 3;
-    exportOutput.style.width = '100%';
-    currentShapeSection.appendChild(exportOutput);
 
     const listContainer = document.createElement('div');
     savedSection.appendChild(listContainer);
@@ -250,16 +239,14 @@ export function initSidebar({ sdk, polygonLayer }) {
 
     // Single reset point for "Limpiar dibujo" and for deleting the item
     // currently being edited — both need to drop the active shape's state
-    // (layer, currentEntry, savedSnapshot) and its UI reflection (link,
-    // name, export output, status) so neither leaves stale data behind.
+    // (layer, currentEntry, savedSnapshot) and its UI reflection (name,
+    // status) so neither leaves stale data behind.
     function clearCurrentShape() {
       activeLayer?.clear();
       activeLayer = null;
       currentEntry = null;
       savedSnapshot = null;
-      linkInput.value = '';
       nameInput.value = '';
-      exportOutput.value = '';
       statusDiv.innerText = '';
       setEditingActive(false);
     }
@@ -335,6 +322,26 @@ export function initSidebar({ sdk, polygonLayer }) {
       actionsRow2.className = 'wme-am-actions-row';
       row.appendChild(actionsRow2);
 
+      const rowNotice = document.createElement('div');
+      rowNotice.className = 'wme-am-row-notice';
+      row.appendChild(rowNotice);
+
+      let noticeTimer = null;
+
+      // ponytail: one timer per row — clearTimeout+reset below is enough to
+      // stop a stale timer from wiping a newer notice if two copy buttons in
+      // the same row are clicked in quick succession.
+      function copyToClipboard(text, successKey) {
+        navigator.clipboard.writeText(text).then(
+          () => {
+            clearTimeout(noticeTimer);
+            rowNotice.textContent = t(successKey);
+            noticeTimer = setTimeout(() => { rowNotice.textContent = ''; }, 2000);
+          },
+          () => prompt(t('copyFailed'), text),
+        );
+      }
+
       function addAction(container, label, onClick, iconName) {
         const button = document.createElement('button');
         if (iconName) button.appendChild(buildIcon(iconName));
@@ -380,21 +387,15 @@ export function initSidebar({ sdk, polygonLayer }) {
 
       addAction(actionsRow2, t('copyLink'), () => {
         const enlace = buildEditorLink({ lat: entry.lat, lon: entry.lon, zoom: entry.zoom, env: entry.env });
-        navigator.clipboard.writeText(enlace).then(
-          () => { statusDiv.innerText = t('linkCopied'); },
-          () => {
-            linkInput.value = enlace;
-            statusDiv.innerText = t('linkCopyFailed');
-          },
-        );
+        copyToClipboard(enlace, 'linkCopied');
       }, 'link');
 
       addAction(actionsRow2, t('exportGeoJSON'), () => {
-        exportOutput.value = JSON.stringify(toGeoJSONFeature(entry));
+        copyToClipboard(JSON.stringify(toGeoJSONFeature(entry)), 'geoJSONCopied');
       });
 
       addAction(actionsRow2, t('exportWKT'), () => {
-        exportOutput.value = toWKT(entry.geometry);
+        copyToClipboard(toWKT(entry.geometry), 'wktCopied');
       });
 
       return row;
@@ -429,7 +430,6 @@ export function initSidebar({ sdk, polygonLayer }) {
         : t('areaExceedsLimit', areaKm2.toFixed(2), level, maxAreaKm2);
 
       const { lon, lat } = polygonCenter(polygon.coordinates[0].slice(0, -1));
-      linkInput.value = buildEditorLink({ lat, lon, zoom });
       updateCurrentEntry({ geometry: polygon, lat, lon, nivel: level, zoom, area_km2: areaKm2 });
     }
 
